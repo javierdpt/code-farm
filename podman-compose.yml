@@ -1,0 +1,31 @@
+version: "3"
+
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: apps/orchestrator/Containerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+    restart: unless-stopped
+
+  # The worker-agent should run directly on the host for the POC
+  # since it needs access to the host's Podman. Uncomment below
+  # only if mounting the Podman socket into the container:
+  #
+  # worker-agent:
+  #   build:
+  #     context: .
+  #     dockerfile: apps/worker-agent/Containerfile
+  #   environment:
+  #     - ORCHESTRATOR_URL=ws://orchestrator:3000/ws/worker
+  #     - WORKER_NAME=local-worker
+  #   volumes:
+  #     - /run/podman/podman.sock:/run/podman/podman.sock
+  #   depends_on:
+  #     - orchestrator
+  #   restart: unless-stopped

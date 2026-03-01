@@ -1,0 +1,31 @@
+# Worker Agent Containerfile
+# NOTE: For the POC, the worker-agent should run directly on the host machine
+# (not in a container) since it needs access to the host's Podman socket.
+# This Containerfile is provided for reference / future use.
+
+FROM node:22-alpine AS builder
+WORKDIR /app
+
+COPY package.json package-lock.json* turbo.json tsconfig.base.json ./
+COPY apps/worker-agent/package.json apps/worker-agent/
+COPY packages/shared/package.json packages/shared/
+
+RUN npm install
+
+COPY packages/shared/ packages/shared/
+COPY apps/worker-agent/ apps/worker-agent/
+
+RUN npx turbo build --filter=@code-farm/worker-agent...
+
+FROM node:22-alpine AS runner
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/worker-agent/dist ./dist
+COPY --from=builder /app/apps/worker-agent/package.json ./
+COPY --from=builder /app/packages/shared/dist ./node_modules/@code-farm/shared/dist
+COPY --from=builder /app/packages/shared/package.json ./node_modules/@code-farm/shared/
+
+CMD ["node", "dist/index.js"]
