@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* ─── Tailwind v4 Theme ─── */
+@theme {
+  --color-vsc-bg-primary: #1e1e1e;
+  --color-vsc-bg-secondary: #252526;
+  --color-vsc-bg-tertiary: #2d2d2d;
+  --color-vsc-bg-input: #3c3c3c;
+  --color-vsc-border: #3c3c3c;
+  --color-vsc-hover: #2a2d2e;
+  --color-vsc-selection: #264f78;
+  --color-vsc-active: #094771;
+  --color-vsc-text-primary: #d4d4d4;
+  --color-vsc-text-secondary: #808080;
+  --color-vsc-accent-blue: #569cd6;
+  --color-vsc-accent-teal: #4ec9b0;
+  --color-vsc-status-bar: #007acc;
+  --color-vsc-error: #f44747;
+  --color-vsc-warning: #cca700;
+  --color-vsc-success: #4ec9b0;
+}
+
+/* ─── VS Code Dark Theme Custom Properties ─── */
+:root {
+  --bg-primary: #1e1e1e;
+  --bg-secondary: #252526;
+  --bg-tertiary: #2d2d2d;
+  --bg-input: #3c3c3c;
+  --border: #3c3c3c;
+  --hover: #2a2d2e;
+  --selection: #264f78;
+  --active: #094771;
+  --text-primary: #d4d4d4;
+  --text-secondary: #808080;
+  --accent-blue: #569cd6;
+  --accent-teal: #4ec9b0;
+  --status-bar: #007acc;
+  --error: #f44747;
+  --warning: #cca700;
+  --success: #4ec9b0;
+}
+
+/* ─── Base Styles ─── */
+html,
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* ─── Scrollbar Styling ─── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #424242 #1e1e1e;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #424242;
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #555555;
+}
+
+*::-webkit-scrollbar-corner {
+  background: #1e1e1e;
+}
