@@ -215,13 +215,13 @@ npm run clean
 
 ```bash
 # Build just the shared types
-npx turbo build --filter=@code-farm/shared
+npm run build -w packages/shared
 
-# Build the orchestrator and its dependencies
-npx turbo build --filter=@code-farm/orchestrator...
+# Build the orchestrator
+npm run build -w apps/orchestrator
 
-# Build the worker agent and its dependencies
-npx turbo build --filter=@code-farm/worker-agent...
+# Build the worker agent
+npm run build -w apps/worker-agent
 ```
 
 ## Production Deployment
@@ -244,11 +244,10 @@ npm run build
 cd apps/orchestrator
 NODE_ENV=production node .next/standalone/apps/orchestrator/server.js
 
-# Start worker (on each machine)
-cd apps/worker-agent
+# Install and start worker (on each machine)
 ORCHESTRATOR_URL=ws://orchestrator-host:3000/ws/worker \
 WORKER_NAME=worker-1 \
-node dist/index.js
+worker-agent
 ```
 
 ### Option 3: Build container images
@@ -261,21 +260,55 @@ podman build -t code-farm-orchestrator -f apps/orchestrator/Containerfile .
 podman run -d -p 3000:3000 --name orchestrator code-farm-orchestrator
 ```
 
+## Installing the Worker Agent
+
+The worker agent can be installed as a global CLI from a cloned copy of the repo. This works on Mac, Windows, and Linux.
+
+```bash
+# Clone and install
+git clone <repo-url> code-farm
+cd code-farm
+npm install
+npm run install:worker
+```
+
+This builds the shared packages, compiles the worker agent, and installs it globally. You can now run `worker-agent` from anywhere:
+
+```bash
+ORCHESTRATOR_URL=ws://orchestrator-host:3000/ws/worker \
+WORKER_NAME=my-machine \
+worker-agent
+```
+
+On Windows (PowerShell):
+
+```powershell
+$env:ORCHESTRATOR_URL="ws://orchestrator-host:3000/ws/worker"
+$env:WORKER_NAME="my-machine"
+worker-agent
+```
+
+To uninstall:
+
+```bash
+npm uninstall -g @code-farm/worker-agent
+```
+
 ## Multi-Machine Setup
 
 1. Deploy the orchestrator on a machine reachable by all workers
 2. On each worker machine:
    - Install Node.js 22+ and Podman
    - Build the dev workspace image: `podman build -t localhost/claude-code:latest -f containers/dev-workspace/Containerfile .`
-   - Clone this repo and `npm install && npx turbo build --filter=@code-farm/worker-agent...`
-   - Start the agent: `ORCHESTRATOR_URL=ws://orchestrator-ip:3000/ws/worker WORKER_NAME=machine-name node apps/worker-agent/dist/index.js`
+   - Clone this repo and install the worker agent: `cd code-farm && npm install && npm run install:worker`
+   - Start the agent: `ORCHESTRATOR_URL=ws://orchestrator-ip:3000/ws/worker WORKER_NAME=machine-name worker-agent`
 3. Workers connect outbound — no inbound ports needed on worker machines
 
 ## Tech Stack
 
 | Concern | Choice |
 |---------|--------|
-| Monorepo | Turborepo + npm workspaces |
+| Monorepo | npm workspaces |
 | Orchestrator | Next.js 15, App Router, custom `server.ts` |
 | Worker Agent | Standalone Node.js/TypeScript |
 | Terminal (browser) | xterm.js with fit addon |

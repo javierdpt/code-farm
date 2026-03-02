@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { config } from './config.js';
 import { WorkerWSClient } from './ws-client.js';
 import { HeartbeatReporter } from './heartbeat.js';

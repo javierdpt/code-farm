@@ -42,6 +42,16 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    label: 'Setup',
+    href: '/docs',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 2H14C15.1 2 16 2.9 16 4V16C16 17.1 15.1 18 14 18H6C4.9 18 4 17.1 4 16V4C4 2.9 4.9 2 6 2Z" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M7 6H13M7 10H13M7 14H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 export function Sidebar({ workerCount = 0 }: SidebarProps) {
