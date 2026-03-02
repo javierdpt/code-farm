@@ -70,6 +70,7 @@ All configuration is via environment variables:
 | `ORCHESTRATOR_URL` | No | `ws://localhost:3000/ws/worker` | WebSocket URL of the orchestrator. Use `ws://` for plain or `wss://` for TLS. |
 | `WORKER_NAME` | No | System hostname | A human-readable name for this worker. Shown in the dashboard and used for targeting containers to specific workers. Pick something descriptive like `mac-studio`, `build-server`, or `cloud-vm-1`. |
 | `CONTAINER_IMAGE` | No | `localhost/claude-code-dev:latest` | The Podman image to use when creating dev containers. Must be available locally on the worker machine. |
+| `PODMAN_PATH` | No | `podman` | Full path to the Podman binary. Only needed if `podman` is not in your system PATH (common on Windows). Example: `C:\Program Files\RedHat\Podman\podman.exe`. |
 
 ## Running
 
@@ -91,6 +92,49 @@ cd apps/worker-agent
 ORCHESTRATOR_URL=ws://orchestrator.example.com:3000/ws/worker \
 WORKER_NAME=prod-worker-1 \
 npm run start
+```
+
+### Windows (PowerShell)
+
+```powershell
+cd apps\worker-agent
+
+$env:ORCHESTRATOR_URL="ws://192.168.1.100:3000/ws/worker"
+$env:WORKER_NAME="windows-worker"
+# Only needed if podman is not in PATH:
+$env:PODMAN_PATH="C:\Program Files\RedHat\Podman\podman.exe"
+npm run dev
+```
+
+### Windows (Git Bash / MSYS2)
+
+In Git Bash you must `export` variables — otherwise they are shell-local and the child process won't see them:
+
+```bash
+cd apps/worker-agent
+
+export ORCHESTRATOR_URL=ws://192.168.1.100:3000/ws/worker
+export WORKER_NAME=windows-worker
+# Only needed if podman is not in PATH:
+export PODMAN_PATH="C:/Program Files/RedHat/Podman/podman.exe"
+npm run dev
+```
+
+Or as a one-liner:
+
+```bash
+ORCHESTRATOR_URL=ws://192.168.1.100:3000/ws/worker WORKER_NAME=windows-worker npm run dev
+```
+
+### Windows (Command Prompt)
+
+```cmd
+cd apps\worker-agent
+
+set ORCHESTRATOR_URL=ws://192.168.1.100:3000/ws/worker
+set WORKER_NAME=windows-worker
+set PODMAN_PATH=C:\Program Files\RedHat\Podman\podman.exe
+npm run dev
 ```
 
 ### Running as a systemd service
@@ -205,6 +249,7 @@ Example: `cf-fix-auth-bug-a1b2c3d4`
 - Ensure the container is in `running` state: `podman ps`
 - Check that `podman exec -it <container-id> /bin/bash` works manually
 - Look for terminal-related errors in the agent logs
+- **On Windows**: If you see `File not found` errors, set `PODMAN_PATH` to the full path to `podman.exe`
 
 ### High memory usage
 

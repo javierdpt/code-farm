@@ -62,14 +62,23 @@ export function AppShell({
     <div className="flex h-screen flex-col overflow-hidden">
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <Sidebar workerCount={workerCount} />
+        <Sidebar />
 
         {/* Main Content Area */}
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header title={title} breadcrumb={breadcrumb} workerCount={workerCount} />
 
-          <main className="flex flex-1 flex-col overflow-auto p-6">
-            {children}
+          <main className="relative flex flex-1 flex-col overflow-auto">
+            {/* Watermark background logo */}
+            <div
+              className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain"
+              style={{ backgroundImage: 'url(/images/logo.png)', backgroundAttachment: 'fixed' }}
+            />
+            <div className="pointer-events-none absolute inset-0 bg-vsc-bg-primary/95" />
+
+            <div className="relative z-10 flex-1 p-6">
+              {children}
+            </div>
           </main>
         </div>
       </div>

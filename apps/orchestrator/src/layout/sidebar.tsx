@@ -1,12 +1,10 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-interface SidebarProps {
-  workerCount?: number;
-}
 
 const navItems = [
   {
@@ -54,42 +52,28 @@ const navItems = [
   },
 ];
 
-export function Sidebar({ workerCount = 0 }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
 
+  // Auto-collapse on mobile
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      setCollapsed(e.matches);
+    };
+    handleChange(mq);
+    mq.addEventListener('change', handleChange);
+    return () => mq.removeEventListener('change', handleChange);
+  }, []);
+
   return (
     <aside
-      className={`flex flex-col border-r border-vsc-border bg-vsc-bg-secondary transition-all duration-200 ${
+      className={`relative flex flex-col border-r border-vsc-border bg-vsc-bg-secondary/90 transition-all duration-200 ${
         collapsed ? 'w-[60px]' : 'w-[240px]'
       }`}
     >
-      {/* Logo / Title */}
-      <div className="flex h-12 items-center justify-between border-b border-vsc-border px-3">
-        {!collapsed && (
-          <span className="text-sm font-semibold text-vsc-accent-blue tracking-wide">
-            Code Farm
-          </span>
-        )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="flex h-7 w-7 items-center justify-center rounded text-vsc-text-secondary hover:bg-vsc-hover hover:text-vsc-text-primary transition-colors"
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className={`transition-transform ${collapsed ? 'rotate-180' : ''}`}
-          >
-            <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Navigation */}
+      {/* Navigation at the top */}
       <nav className="flex-1 py-2">
         <ul className="space-y-0.5 px-2">
           {navItems.map((item) => {
@@ -114,17 +98,47 @@ export function Sidebar({ workerCount = 0 }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* Worker Count Badge */}
-      <div className="border-t border-vsc-border px-3 py-3">
-        <div
-          className={`flex items-center gap-2 text-xs text-vsc-text-secondary ${
-            collapsed ? 'justify-center' : ''
-          }`}
-        >
-          <span className="inline-block h-2 w-2 rounded-full bg-vsc-success flex-shrink-0" />
-          {!collapsed && <span>{workerCount} worker{workerCount !== 1 ? 's' : ''}</span>}
-        </div>
+      {/* Logo at the bottom */}
+      <div className={`flex items-center justify-center ${collapsed ? 'px-2 pb-10' : 'p-1 pb-10'}`}>
+        {!collapsed && (
+          <Image
+            src="/images/logo.png"
+            alt="Code Farm"
+            width={200}
+            height={200}
+            className="h-auto w-full object-contain"
+            priority
+          />
+        )}
+        {collapsed && (
+          <Image
+            src="/images/logo-small.png"
+            alt="Code Farm"
+            width={40}
+            height={40}
+            className="h-auto w-full object-contain"
+            priority
+          />
+        )}
       </div>
+
+      {/* Collapse button — absolute positioned bottom-right */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className={`absolute bottom-2 flex h-7 w-7 items-center justify-center rounded text-vsc-text-secondary hover:bg-vsc-hover hover:text-vsc-text-primary transition-colors ${collapsed ? 'left-1/2 -translate-x-1/2' : 'right-2'}`}
+        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={`transition-transform ${collapsed ? 'rotate-180' : ''}`}
+        >
+          <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
     </aside>
   );
 }

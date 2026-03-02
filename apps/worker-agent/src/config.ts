@@ -18,4 +18,7 @@ export const config = {
 
   /** Container image to use for new containers */
   containerImage: process.env.CONTAINER_IMAGE || 'localhost/claude-code-dev:latest',
+
+  /** Path to podman binary. On Windows, node-pty requires the .exe extension. */
+  podmanPath: process.env.PODMAN_PATH || (os.platform() === 'win32' ? 'podman.exe' : 'podman'),
 };

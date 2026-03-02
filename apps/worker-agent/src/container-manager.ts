@@ -73,7 +73,7 @@ export class ContainerManager {
 
     console.log(`[WorkerAgent] Creating container "${containerName}" from image "${image}"`);
 
-    const { stdout } = await execFile('podman', args, { timeout: PODMAN_TIMEOUT });
+    const { stdout } = await execFile(config.podmanPath, args, { timeout: PODMAN_TIMEOUT });
     const containerId = stdout.trim();
 
     console.log(`[WorkerAgent] Container created: ${containerId.substring(0, 12)}`);
@@ -87,7 +87,7 @@ export class ContainerManager {
    */
   async start(containerId: string): Promise<ContainerInfo> {
     console.log(`[WorkerAgent] Starting container ${containerId.substring(0, 12)}...`);
-    await execFile('podman', ['start', containerId], {
+    await execFile(config.podmanPath, ['start', containerId], {
       timeout: PODMAN_TIMEOUT,
     });
     console.log(`[WorkerAgent] Container started: ${containerId.substring(0, 12)}`);
@@ -100,7 +100,7 @@ export class ContainerManager {
   async stop(containerId: string): Promise<ContainerInfo> {
     console.log(`[WorkerAgent] Stopping container ${containerId.substring(0, 12)}...`);
     try {
-      await execFile('podman', ['stop', '--time', '10', containerId], {
+      await execFile(config.podmanPath, ['stop', '--time', '10', containerId], {
         timeout: PODMAN_TIMEOUT,
       });
       console.log(`[WorkerAgent] Container stopped: ${containerId.substring(0, 12)}`);
@@ -116,14 +116,14 @@ export class ContainerManager {
   async remove(containerId: string): Promise<void> {
     console.log(`[WorkerAgent] Removing container ${containerId.substring(0, 12)}...`);
     try {
-      await execFile('podman', ['stop', '--time', '10', containerId], {
+      await execFile(config.podmanPath, ['stop', '--time', '10', containerId], {
         timeout: PODMAN_TIMEOUT,
       });
     } catch {
       // Already stopped, continue to rm
     }
     try {
-      await execFile('podman', ['rm', '-f', containerId], {
+      await execFile(config.podmanPath, ['rm', '-f', containerId], {
         timeout: PODMAN_TIMEOUT,
       });
       console.log(`[WorkerAgent] Container removed: ${containerId.substring(0, 12)}`);

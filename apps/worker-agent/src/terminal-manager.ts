@@ -1,5 +1,6 @@
 import * as pty from 'node-pty';
 import { randomBytes } from 'node:crypto';
+import { config } from './config.js';
 
 interface TerminalSession {
   sessionId: string;
@@ -44,14 +45,18 @@ export class TerminalManager {
     }
     env.TERM = 'xterm-256color';
 
+    const isWindows = process.platform === 'win32';
+    const shell = isWindows ? '/bin/bash' : '/bin/bash';
     const ptyProcess = pty.spawn(
-      'podman',
-      ['exec', '-it', containerId, '/bin/bash'],
+      config.podmanPath,
+      ['exec', '-it', containerId, shell],
       {
         name: 'xterm-256color',
         cols,
         rows,
         env,
+        // On Windows, node-pty needs useConpty
+        ...(isWindows ? { useConpty: true } : {}),
       },
     );
 
