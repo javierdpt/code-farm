@@ -62,7 +62,7 @@ This builds and installs the `worker-agent` command globally.
 On each worker machine, build the Podman image that gets launched for each ticket:
 
 ```bash
-podman build -t localhost/claude-code:latest \
+podman build -t localhost/claude-code-dev:latest \
   -f containers/dev-workspace/Containerfile .
 ```
 
@@ -116,7 +116,7 @@ The system will:
 |----------|---------|-------------|
 | `ORCHESTRATOR_URL` | `ws://localhost:3000/ws/worker` | WebSocket URL of the orchestrator |
 | `WORKER_NAME` | System hostname | Name for this worker |
-| `CONTAINER_IMAGE` | `localhost/claude-code:latest` | Podman image for dev containers |
+| `CONTAINER_IMAGE` | `localhost/claude-code-dev:latest` | Podman image for dev containers |
 
 ### Ticket Providers
 

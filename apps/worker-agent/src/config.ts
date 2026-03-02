@@ -17,5 +17,5 @@ export const config = {
   memoryTotal: os.totalmem(),
 
   /** Container image to use for new containers */
-  containerImage: process.env.CONTAINER_IMAGE || 'localhost/claude-code:latest',
+  containerImage: process.env.CONTAINER_IMAGE || 'localhost/claude-code-dev:latest',
 };

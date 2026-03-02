@@ -40,7 +40,7 @@ npm install
 This is the Podman image that gets launched for each ticket. It includes Claude Code, git, tmux, neovim, and GitHub CLI.
 
 ```bash
-podman build -t localhost/claude-code:latest \
+podman build -t localhost/claude-code-dev:latest \
   -f containers/dev-workspace/Containerfile .
 ```
 
@@ -121,7 +121,7 @@ code-farm/
 |----------|---------|-------------|
 | `ORCHESTRATOR_URL` | `ws://localhost:3000/ws/worker` | WebSocket URL of the orchestrator |
 | `WORKER_NAME` | System hostname | Human-readable name for this worker |
-| `CONTAINER_IMAGE` | `localhost/claude-code:latest` | Podman image for dev containers |
+| `CONTAINER_IMAGE` | `localhost/claude-code-dev:latest` | Podman image for dev containers |
 
 ### Ticket Providers
 
@@ -328,7 +328,7 @@ npm uninstall -g @code-farm/worker-agent
 1. Deploy the orchestrator on a machine reachable by all workers
 2. On each worker machine:
    - Install Node.js 22+ and Podman
-   - Build the dev workspace image: `podman build -t localhost/claude-code:latest -f containers/dev-workspace/Containerfile .`
+   - Build the dev workspace image: `podman build -t localhost/claude-code-dev:latest -f containers/dev-workspace/Containerfile .`
    - Clone this repo and install the worker agent: `cd code-farm && npm install && npm run install:worker`
    - Start the agent: `ORCHESTRATOR_URL=ws://orchestrator-ip:3000/ws/worker WORKER_NAME=machine-name worker-agent`
 3. Workers connect outbound — no inbound ports needed on worker machines

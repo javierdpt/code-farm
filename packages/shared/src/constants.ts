@@ -1,4 +1,4 @@
-export const CONTAINER_IMAGE = 'localhost/claude-code:latest';
+export const CONTAINER_IMAGE = 'localhost/claude-code-dev:latest';
 export const HEARTBEAT_INTERVAL = 10_000;
 export const HEARTBEAT_TIMEOUT = 30_000;
 export const RECONNECT_BASE_DELAY = 1_000;

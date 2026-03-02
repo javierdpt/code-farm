@@ -41,14 +41,14 @@ The worker agent is a lightweight Node.js process that runs on each machine in y
 
 ```bash
 # From the repo root
-podman build -t localhost/claude-code:latest \
+podman build -t localhost/claude-code-dev:latest \
   -f containers/dev-workspace/Containerfile .
 ```
 
 Verify Podman is working:
 
 ```bash
-podman run --rm localhost/claude-code:latest echo "OK"
+podman run --rm localhost/claude-code-dev:latest echo "OK"
 ```
 
 ## Installation
@@ -69,7 +69,7 @@ All configuration is via environment variables:
 |----------|----------|---------|-------------|
 | `ORCHESTRATOR_URL` | No | `ws://localhost:3000/ws/worker` | WebSocket URL of the orchestrator. Use `ws://` for plain or `wss://` for TLS. |
 | `WORKER_NAME` | No | System hostname | A human-readable name for this worker. Shown in the dashboard and used for targeting containers to specific workers. Pick something descriptive like `mac-studio`, `build-server`, or `cloud-vm-1`. |
-| `CONTAINER_IMAGE` | No | `localhost/claude-code:latest` | The Podman image to use when creating dev containers. Must be available locally on the worker machine. |
+| `CONTAINER_IMAGE` | No | `localhost/claude-code-dev:latest` | The Podman image to use when creating dev containers. Must be available locally on the worker machine. |
 
 ## Running
 
@@ -109,7 +109,7 @@ User=your-user
 WorkingDirectory=/path/to/code-farm/apps/worker-agent
 Environment=ORCHESTRATOR_URL=ws://orchestrator-host:3000/ws/worker
 Environment=WORKER_NAME=this-machine
-Environment=CONTAINER_IMAGE=localhost/claude-code:latest
+Environment=CONTAINER_IMAGE=localhost/claude-code-dev:latest
 ExecStart=/usr/bin/node dist/index.js
 Restart=always
 RestartSec=5
@@ -196,7 +196,7 @@ Example: `cf-fix-auth-bug-a1b2c3d4`
 
 ### Container creation fails
 
-- Verify the container image exists: `podman images localhost/claude-code:latest`
+- Verify the container image exists: `podman images localhost/claude-code-dev:latest`
 - Check Podman is working: `podman run --rm alpine echo OK`
 - Check the agent logs for Podman CLI errors
 
@@ -223,7 +223,7 @@ The agent logs to stdout/stderr with `[WorkerAgent]` prefix:
 [WorkerAgent]   CPUs:          8
 [WorkerAgent]   Memory:        16.00 GB
 [WorkerAgent]   Orchestrator:  ws://localhost:3000/ws/worker
-[WorkerAgent]   Image:         localhost/claude-code:latest
+[WorkerAgent]   Image:         localhost/claude-code-dev:latest
 [WorkerAgent] Connecting to orchestrator...
 [WorkerAgent] Connected to orchestrator
 [WorkerAgent] Registered with worker ID: a1b2c3d4-...
