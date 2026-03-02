@@ -53,4 +53,5 @@ class WorkerRegistry {
   }
 }
 
-export const workerRegistry = new WorkerRegistry();
+const g = globalThis as unknown as { __workerRegistry?: WorkerRegistry };
+export const workerRegistry = g.__workerRegistry ?? (g.__workerRegistry = new WorkerRegistry());

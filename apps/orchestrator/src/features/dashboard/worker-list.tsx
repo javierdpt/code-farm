@@ -1,7 +1,7 @@
 'use client';
 
-import type { WorkerInfo } from '@/types';
-import { WorkerCard } from './worker-card';
+import type { WorkerInfo } from '@/core/types';
+import { WorkerCard } from '@/features/dashboard/worker-card';
 
 interface WorkerListProps {
   workers: WorkerInfo[];

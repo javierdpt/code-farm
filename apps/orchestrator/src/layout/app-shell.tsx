@@ -1,8 +1,8 @@
 'use client';
 
-import { Sidebar } from './sidebar';
-import { Header } from './header';
-import { StatusBar } from './status-bar';
+import { Sidebar } from '@/layout/sidebar';
+import { Header } from '@/layout/header';
+import { StatusBar } from '@/layout/status-bar';
 
 interface AppShellProps {
   children: React.ReactNode;

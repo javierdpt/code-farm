@@ -4,6 +4,7 @@ import type {
   ContainerCreatedMessage,
   ContainerStoppedMessage,
   ContainerListResponseMessage,
+  ContainerListAllResponseMessage,
   TerminalOpenedMessage,
   TerminalOutputMessage,
   TerminalClosedMessage,
@@ -11,6 +12,7 @@ import type {
   ContainerCreateMessage,
   ContainerStopMessage,
   ContainerListMessage,
+  ContainerListAllMessage,
   TerminalOpenMessage,
   TerminalInputMessage,
   TerminalResizeMessage,
@@ -161,6 +163,26 @@ export function createContainerList(
   return {
     type: 'container.list',
     requestId,
+  };
+}
+
+export function createContainerListAll(
+  requestId: string,
+): ContainerListAllMessage {
+  return {
+    type: 'container.list-all',
+    requestId,
+  };
+}
+
+export function createContainerListAllResponse(
+  requestId: string,
+  containers: ContainerInfo[],
+): ContainerListAllResponseMessage {
+  return {
+    type: 'container.list-all.response',
+    requestId,
+    containers,
   };
 }
 

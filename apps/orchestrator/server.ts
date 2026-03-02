@@ -1,7 +1,7 @@
 import { createServer } from 'http';
 import { parse } from 'url';
 import next from 'next';
-import { setupWebSocketServer } from './src/lib/ws-manager.js';
+import { setupWebSocketServer } from './src/core/ws-manager.js';
 
 const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOST || '0.0.0.0';

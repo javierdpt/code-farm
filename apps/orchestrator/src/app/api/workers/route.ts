@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { workerRegistry } from '@/lib/worker-registry';
+import { workerRegistry } from '@/core/worker-registry';
 
 export async function GET() {
   const workers = workerRegistry.getAll();

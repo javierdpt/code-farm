@@ -1,8 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { ContainerInfo } from '@/types';
-import { relativeTime, truncate } from '@/lib/format';
+import type { ContainerInfo } from '@/core/types';
+import { relativeTime, truncate } from '@/core/format';
+import { Badge } from '@/common/badge';
 
 interface ContainerCardProps {
   container: ContainerInfo;
@@ -31,15 +32,24 @@ export function ContainerCard({ container }: ContainerCardProps) {
         <span className="text-sm font-semibold text-vsc-text-primary">
           {truncate(container.name, 30)}
         </span>
-        <span className={`flex items-center gap-1.5 text-xs ${status.textClass}`}>
-          <span className={`inline-block h-2 w-2 rounded-full ${status.dotClass}`} />
-          {status.label}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`flex items-center gap-1.5 text-xs ${status.textClass}`}>
+            <span className={`inline-block h-2 w-2 rounded-full ${status.dotClass}`} />
+            {status.label}
+          </span>
+          {container.managed ? (
+            <Badge variant="info">Managed</Badge>
+          ) : (
+            <Badge variant="default">External</Badge>
+          )}
+        </div>
       </div>
 
-      {/* Ticket Title */}
+      {/* Ticket Title or Image Name */}
       <p className="mb-3 text-xs text-vsc-text-secondary">
-        {truncate(container.ticketTitle, 60)}
+        {container.ticketTitle
+          ? truncate(container.ticketTitle, 60)
+          : truncate(container.image, 60)}
       </p>
 
       {/* Footer: Worker, Branch, Time */}
@@ -52,12 +62,14 @@ export function ContainerCard({ container }: ContainerCardProps) {
             </svg>
             {container.workerName}
           </span>
-          <span className="flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 1V8M6 8L3 6M6 8L9 6M2 11H10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {truncate(container.branch, 20)}
-          </span>
+          {container.branch && (
+            <span className="flex items-center gap-1">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 1V8M6 8L3 6M6 8L9 6M2 11H10" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {truncate(container.branch, 20)}
+            </span>
+          )}
         </div>
         <span>{relativeTime(container.createdAt)}</span>
       </div>

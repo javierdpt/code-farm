@@ -54,4 +54,5 @@ class TerminalRelay {
   }
 }
 
-export const terminalRelay = new TerminalRelay();
+const g = globalThis as unknown as { __terminalRelay?: TerminalRelay };
+export const terminalRelay = g.__terminalRelay ?? (g.__terminalRelay = new TerminalRelay());

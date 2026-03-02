@@ -20,12 +20,13 @@ export const ContainerInfoSchema = z.object({
   status: ContainerStatusSchema,
   workerId: z.string().min(1),
   workerName: z.string().min(1),
-  ticketUrl: z.string().url(),
-  ticketTitle: z.string().min(1),
-  repoUrl: z.string().url(),
-  branch: z.string().min(1),
+  ticketUrl: z.string().default(''),
+  ticketTitle: z.string().default(''),
+  repoUrl: z.string().default(''),
+  branch: z.string().default(''),
   createdAt: z.coerce.date(),
   image: z.string().min(1),
+  managed: z.boolean().default(false),
 });
 
 export type ContainerInfo = z.infer<typeof ContainerInfoSchema>;
@@ -33,12 +34,13 @@ export type ContainerInfo = z.infer<typeof ContainerInfoSchema>;
 // --- Container Create Request ---
 
 export const ContainerCreateRequestSchema = z.object({
-  ticketUrl: z.string().url(),
-  ticketTitle: z.string().min(1),
-  repoUrl: z.string().url(),
-  branch: z.string().min(1),
+  ticketUrl: z.string().optional(),
+  ticketTitle: z.string().optional(),
+  repoUrl: z.string().optional(),
+  branch: z.string().optional(),
   workerName: z.string().min(1).optional(),
   image: z.string().min(1).optional(),
+  name: z.string().min(1).optional(),
 });
 
 export type ContainerCreateRequest = z.infer<typeof ContainerCreateRequestSchema>;

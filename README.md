@@ -47,7 +47,7 @@ podman build -t localhost/claude-code:latest \
 ### 3. Start the orchestrator
 
 ```bash
-npm run dev
+npm start
 ```
 
 This starts the orchestrator on `http://localhost:3000` with WebSocket endpoints for workers and browser terminals.
@@ -60,7 +60,7 @@ In a separate terminal (on the same machine or any machine that can reach the or
 cd apps/worker-agent
 ORCHESTRATOR_URL=ws://localhost:3000/ws/worker \
 WORKER_NAME=my-machine \
-npm run dev
+npm start
 ```
 
 The worker connects to the orchestrator and registers itself. You should see it appear on the dashboard at `http://localhost:3000`.
@@ -202,7 +202,7 @@ Query managed containers: `podman ps -a --filter label=claude-farm.managed=true 
 npm install
 
 # Start everything in dev mode (orchestrator + worker hot-reload)
-npm run dev
+npm start
 
 # Build all packages
 npm run build

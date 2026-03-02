@@ -1,7 +1,7 @@
 'use client';
 
-import type { WorkerInfo } from '@/types';
-import { relativeTime, formatBytes } from '@/lib/format';
+import type { WorkerInfo } from '@/core/types';
+import { relativeTime, formatBytes } from '@/core/format';
 
 interface WorkerCardProps {
   worker: WorkerInfo;

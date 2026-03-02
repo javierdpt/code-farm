@@ -27,12 +27,20 @@ export class ContainerManager {
    */
   async create(request: ContainerCreateRequest): Promise<ContainerInfo> {
     const shortId = randomBytes(4).toString('hex');
-    const sanitizedTitle = request.ticketTitle
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .substring(0, 40);
-    const containerName = `cf-${sanitizedTitle}-${shortId}`;
+
+    let containerName: string;
+    if (request.name) {
+      containerName = request.name;
+    } else if (request.ticketTitle) {
+      const sanitizedTitle = request.ticketTitle
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 40);
+      containerName = `cf-${sanitizedTitle}-${shortId}`;
+    } else {
+      containerName = `cf-empty-${shortId}`;
+    }
 
     const image = request.image || config.containerImage || CONTAINER_IMAGE;
     const createdAt = new Date().toISOString();
@@ -43,16 +51,25 @@ export class ContainerManager {
       '-d',
       '--name', containerName,
       '--label', `${PODMAN_LABEL_PREFIX}.managed=true`,
-      '--label', `${PODMAN_LABEL_PREFIX}.ticket-url=${request.ticketUrl}`,
-      '--label', `${PODMAN_LABEL_PREFIX}.ticket-title=${request.ticketTitle}`,
-      '--label', `${PODMAN_LABEL_PREFIX}.repo-url=${request.repoUrl}`,
-      '--label', `${PODMAN_LABEL_PREFIX}.branch=${request.branch}`,
       '--label', `${PODMAN_LABEL_PREFIX}.created-at=${createdAt}`,
       '--label', `${PODMAN_LABEL_PREFIX}.worker-id=${this.workerId}`,
       '--label', `${PODMAN_LABEL_PREFIX}.worker-name=${workerName}`,
-      image,
-      'sleep', 'infinity',
     ];
+
+    if (request.ticketUrl) {
+      args.push('--label', `${PODMAN_LABEL_PREFIX}.ticket-url=${request.ticketUrl}`);
+    }
+    if (request.ticketTitle) {
+      args.push('--label', `${PODMAN_LABEL_PREFIX}.ticket-title=${request.ticketTitle}`);
+    }
+    if (request.repoUrl) {
+      args.push('--label', `${PODMAN_LABEL_PREFIX}.repo-url=${request.repoUrl}`);
+    }
+    if (request.branch) {
+      args.push('--label', `${PODMAN_LABEL_PREFIX}.branch=${request.branch}`);
+    }
+
+    args.push(image, 'sleep', 'infinity');
 
     console.log(`[WorkerAgent] Creating container "${containerName}" from image "${image}"`);
 
@@ -114,6 +131,24 @@ export class ContainerManager {
   }
 
   /**
+   * List ALL containers on this worker (no label filter).
+   * Sets `managed` flag based on presence of the claude-farm label.
+   */
+  async listAll(): Promise<ContainerInfo[]> {
+    const { stdout } = await execFile(
+      'podman',
+      ['ps', '-a', '--format', 'json'],
+      { timeout: PODMAN_TIMEOUT },
+    );
+
+    const trimmed = stdout.trim();
+    if (!trimmed || trimmed === 'null') return [];
+
+    const containers: unknown[] = JSON.parse(trimmed);
+    return containers.map((c) => this.parsePodmanContainer(c));
+  }
+
+  /**
    * Inspect a single container and return its info.
    */
   async inspect(containerId: string): Promise<ContainerInfo> {
@@ -146,14 +181,13 @@ export class ContainerManager {
   }
 
   /**
-   * Return the number of running containers managed by claude-farm.
+   * Return the number of all running containers on this worker.
    */
   async runningCount(): Promise<number> {
     const { stdout } = await execFile(
       'podman',
       [
         'ps',
-        '--filter', `label=${PODMAN_LABEL_PREFIX}.managed=true`,
         '--filter', 'status=running',
         '--format', '{{.ID}}',
       ],
@@ -176,6 +210,7 @@ export class ContainerManager {
     const obj = json as Record<string, unknown>;
     const labels = (obj.Labels ?? {}) as Record<string, string>;
     const status = this.mapPodmanState(obj.State as string | undefined);
+    const managed = labels[`${PODMAN_LABEL_PREFIX}.managed`] === 'true';
 
     return {
       id: (obj.Id ?? obj.ID ?? '') as string,
@@ -193,6 +228,7 @@ export class ContainerManager {
           Date.now(),
       ),
       image: (obj.Image ?? '') as string,
+      managed,
     };
   }
 
@@ -205,6 +241,7 @@ export class ContainerManager {
     const state = (obj.State ?? {}) as Record<string, unknown>;
     const labels = (config_.Labels ?? {}) as Record<string, string>;
     const status = this.mapPodmanState(state.Status as string | undefined);
+    const managed = labels[`${PODMAN_LABEL_PREFIX}.managed`] === 'true';
 
     return {
       id: (obj.Id ?? '') as string,
@@ -222,6 +259,7 @@ export class ContainerManager {
           Date.now(),
       ),
       image: (config_.Image ?? '') as string,
+      managed,
     };
   }
 

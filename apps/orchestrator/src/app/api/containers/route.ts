@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateRequestId, createContainerCreate } from '@code-farm/shared';
 import type { ContainerInfo } from '@code-farm/shared';
-import { workerRegistry } from '@/lib/worker-registry';
-import { wsState } from '@/lib/ws-state';
+import { workerRegistry } from '@/core/worker-registry';
+import { wsState } from '@/core/ws-state';
 
 export async function GET() {
   const containers = Array.from(wsState.containers.values());

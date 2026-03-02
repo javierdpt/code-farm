@@ -5,6 +5,7 @@ import {
   parseWorkerMessage,
   generateRequestId,
   createWorkerAccepted,
+  createContainerListAll,
   createTerminalOpen,
   createTerminalInput,
   createTerminalResize,
@@ -45,6 +46,16 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
 
     case 'container.list.response': {
       // Update container state for this worker
+      for (const container of message.containers) {
+        wsState.containers.set(container.id, container);
+      }
+      // Resolve pending request
+      wsState.resolveRequest(message.requestId, message.containers);
+      break;
+    }
+
+    case 'container.list-all.response': {
+      // Update container state for this worker (same as container.list.response)
       for (const container of message.containers) {
         wsState.containers.set(container.id, container);
       }
@@ -165,6 +176,12 @@ export function setupWebSocketServer(server: HttpServer) {
         ws.send(JSON.stringify(accepted));
 
         console.log(`[WSManager] Worker registered: ${message.name} (${workerId})`);
+
+        // Request all containers from the newly connected worker
+        const listAllRequestId = generateRequestId();
+        const listAllMsg = createContainerListAll(listAllRequestId);
+        ws.send(JSON.stringify(listAllMsg));
+
         return;
       }
 

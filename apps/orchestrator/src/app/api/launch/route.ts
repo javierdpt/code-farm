@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { generateRequestId, createContainerCreate } from '@code-farm/shared';
 import type { ContainerInfo } from '@code-farm/shared';
-import { workerRegistry } from '@/lib/worker-registry';
-import { wsState } from '@/lib/ws-state';
+import { workerRegistry } from '@/core/worker-registry';
+import { wsState } from '@/core/ws-state';
 
 const LaunchBodySchema = z.object({
-  ticketUrl: z.string().url(),
+  ticketUrl: z.string().url().optional(),
+  name: z.string().min(1).optional(),
   workerName: z.string().min(1).optional(),
   extraInstructions: z.string().optional(),
 });
@@ -29,38 +30,40 @@ export async function POST(request: NextRequest) {
 
   const { ticketUrl, workerName, extraInstructions } = parsed.data;
 
-  // Step 1: Resolve ticket provider and fetch ticket data
   let ticket;
-  try {
-    // Dynamic import to handle the case where the package may not be fully built yet
-    const { resolveProvider } = await import('@code-farm/ticket-providers');
-    const provider = resolveProvider(ticketUrl);
-    if (!provider) {
+  let claudeMd: string | undefined;
+
+  // Step 1 & 2: Fetch ticket and generate CLAUDE.md (only if ticketUrl provided)
+  if (ticketUrl) {
+    try {
+      // Dynamic import to handle the case where the package may not be fully built yet
+      const { resolveProvider } = await import('@code-farm/ticket-providers');
+      const provider = resolveProvider(ticketUrl);
+      if (!provider) {
+        return NextResponse.json(
+          { error: `No ticket provider found for URL: ${ticketUrl}` },
+          { status: 400 },
+        );
+      }
+      ticket = await provider.fetch(ticketUrl);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       return NextResponse.json(
-        { error: `No ticket provider found for URL: ${ticketUrl}` },
-        { status: 400 },
+        { error: `Failed to fetch ticket: ${errorMessage}` },
+        { status: 500 },
       );
     }
-    ticket = await provider.fetch(ticketUrl);
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json(
-      { error: `Failed to fetch ticket: ${errorMessage}` },
-      { status: 500 },
-    );
-  }
 
-  // Step 2: Generate CLAUDE.md
-  let claudeMd: string;
-  try {
-    const { generateClaudeMd } = await import('@code-farm/claude-md-generator');
-    claudeMd = generateClaudeMd(ticket, { extraInstructions });
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-    return NextResponse.json(
-      { error: `Failed to generate CLAUDE.md: ${errorMessage}` },
-      { status: 500 },
-    );
+    try {
+      const { generateClaudeMd } = await import('@code-farm/claude-md-generator');
+      claudeMd = generateClaudeMd(ticket, { extraInstructions });
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      return NextResponse.json(
+        { error: `Failed to generate CLAUDE.md: ${errorMessage}` },
+        { status: 500 },
+      );
+    }
   }
 
   // Step 3: Find target worker
@@ -91,14 +94,23 @@ export async function POST(request: NextRequest) {
 
   // Step 4: Create container on worker
   const requestId = generateRequestId();
-  const branchName = ticket.branch || `ticket/${ticket.id}`;
-  const config = {
-    ticketUrl: ticket.url,
-    ticketTitle: ticket.title,
-    repoUrl: ticket.repoUrl,
-    branch: branchName,
-    workerName: worker.name,
-  };
+
+  const config = ticket
+    ? {
+        ticketUrl: ticket.url,
+        ticketTitle: ticket.title,
+        repoUrl: ticket.repoUrl,
+        branch: ticket.branch || `ticket/${ticket.id}`,
+        workerName: worker.name,
+      }
+    : {
+        ticketUrl: '',
+        ticketTitle: '',
+        repoUrl: '',
+        branch: '',
+        workerName: worker.name,
+        ...(parsed.data.name ? { name: parsed.data.name } : {}),
+      };
 
   const message = createContainerCreate(requestId, config);
 
@@ -114,18 +126,28 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (ticket) {
+    const branchName = ticket.branch || `ticket/${ticket.id}`;
+    return NextResponse.json(
+      {
+        container,
+        ticket: {
+          provider: ticket.provider,
+          url: ticket.url,
+          id: ticket.id,
+          title: ticket.title,
+          repoUrl: ticket.repoUrl,
+          branch: branchName,
+        },
+        claudeMd,
+      },
+      { status: 201 },
+    );
+  }
+
   return NextResponse.json(
     {
       container,
-      ticket: {
-        provider: ticket.provider,
-        url: ticket.url,
-        id: ticket.id,
-        title: ticket.title,
-        repoUrl: ticket.repoUrl,
-        branch: branchName,
-      },
-      claudeMd,
     },
     { status: 201 },
   );

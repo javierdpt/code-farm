@@ -1,7 +1,7 @@
 'use client';
 
-import type { ContainerInfo } from '@/types';
-import { ContainerCard } from './container-card';
+import type { ContainerInfo } from '@/core/types';
+import { ContainerCard } from '@/features/containers/container-card';
 
 interface ContainerListProps {
   containers: ContainerInfo[];

@@ -12,6 +12,7 @@ import type {
   ContainerCreatedMessage,
   ContainerStoppedMessage,
   ContainerListResponseMessage,
+  ContainerListAllResponseMessage,
   TerminalOpenedMessage,
   TerminalOutputMessage,
   TerminalClosedMessage,
@@ -171,6 +172,26 @@ async function handleMessage(raw: unknown): Promise<void> {
         console.error('[WorkerAgent] container.list failed:', err);
         wsClient.send({
           type: 'container.list.error',
+          requestId: msg.requestId,
+          error: (err as Error).message,
+        });
+      }
+      break;
+    }
+
+    case 'container.list-all': {
+      try {
+        const containers = await containerManager.listAll();
+        const response: ContainerListAllResponseMessage = {
+          type: 'container.list-all.response',
+          requestId: msg.requestId,
+          containers,
+        };
+        wsClient.send(response);
+      } catch (err) {
+        console.error('[WorkerAgent] container.list-all failed:', err);
+        wsClient.send({
+          type: 'container.list-all.error',
           requestId: msg.requestId,
           error: (err as Error).message,
         });

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AppShell } from '@/components/layout/app-shell';
-import { WorkerList } from '@/components/workers/worker-list';
-import { ContainerList } from '@/components/containers/container-list';
-import type { WorkerInfo, ContainerInfo } from '@/types';
+import { AppShell } from '@/layout/app-shell';
+import { WorkerList } from '@/features/dashboard/worker-list';
+import { ContainerList } from '@/features/containers/container-list';
+import type { WorkerInfo, ContainerInfo } from '@/core/types';
 
 const POLL_INTERVAL = 5000;
 

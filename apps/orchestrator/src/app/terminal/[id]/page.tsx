@@ -2,7 +2,7 @@
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import { TerminalFullscreen } from '@/components/terminal/terminal-fullscreen';
+import { TerminalFullscreen } from '@/features/terminal/terminal-fullscreen';
 
 export default function FullscreenTerminalPage() {
   const params = useParams<{ id: string }>();

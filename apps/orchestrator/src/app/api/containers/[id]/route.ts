@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateRequestId, createContainerStop } from '@code-farm/shared';
-import { wsState } from '@/lib/ws-state';
+import { wsState } from '@/core/ws-state';
 
 export async function GET(
   _request: NextRequest,

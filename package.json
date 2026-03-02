@@ -11,7 +11,7 @@
     "build:packages": "npm run build -w packages/shared && npm run build -w packages/claude-md-generator && npm run build -w packages/ticket-providers",
     "build": "npm run build:packages && npm run build -w apps/orchestrator && npm run build -w apps/worker-agent",
     "predev": "npm run build:packages",
-    "dev": "npm run dev -w apps/orchestrator & npm run dev -w apps/worker-agent & wait",
+    "start": "npm run dev -w apps/orchestrator & npm run dev -w apps/worker-agent & wait",
     "install:worker": "npm run build:packages && npm run build -w apps/worker-agent && npm install -g ./apps/worker-agent",
     "clean": "npm run clean --workspaces --if-present"
   },

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AppShell } from '@/components/layout/app-shell';
-import { ContainerList } from '@/components/containers/container-list';
-import type { ContainerInfo, WorkerInfo } from '@/types';
+import { AppShell } from '@/layout/app-shell';
+import { ContainerList } from '@/features/containers/container-list';
+import type { ContainerInfo, WorkerInfo } from '@/core/types';
 
 const POLL_INTERVAL = 5000;
 

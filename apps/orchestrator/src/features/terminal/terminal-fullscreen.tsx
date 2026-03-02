@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { useTerminal } from './use-terminal';
+import { useTerminal } from '@/features/terminal/use-terminal';
 
 interface TerminalFullscreenProps {
   containerId: string;

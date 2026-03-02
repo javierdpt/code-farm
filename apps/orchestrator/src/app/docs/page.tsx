@@ -1,6 +1,6 @@
 'use client';
 
-import { AppShell } from '@/components/layout/app-shell';
+import { AppShell } from '@/layout/app-shell';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useEffect, useState } from 'react';

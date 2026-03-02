@@ -59,6 +59,16 @@ export const ContainerListResponseMessageSchema = z.object({
 
 export type ContainerListResponseMessage = z.infer<typeof ContainerListResponseMessageSchema>;
 
+// --- container.list-all.response ---
+
+export const ContainerListAllResponseMessageSchema = z.object({
+  type: z.literal('container.list-all.response'),
+  requestId: z.string().min(1),
+  containers: z.array(ContainerInfoSchema),
+});
+
+export type ContainerListAllResponseMessage = z.infer<typeof ContainerListAllResponseMessageSchema>;
+
 // --- terminal.opened ---
 
 export const TerminalOpenedMessageSchema = z.object({
@@ -97,6 +107,7 @@ export const WorkerMessageSchema = z.discriminatedUnion('type', [
   ContainerCreatedMessageSchema,
   ContainerStoppedMessageSchema,
   ContainerListResponseMessageSchema,
+  ContainerListAllResponseMessageSchema,
   TerminalOpenedMessageSchema,
   TerminalOutputMessageSchema,
   TerminalClosedMessageSchema,
@@ -145,6 +156,15 @@ export const ContainerListMessageSchema = z.object({
 });
 
 export type ContainerListMessage = z.infer<typeof ContainerListMessageSchema>;
+
+// --- container.list-all ---
+
+export const ContainerListAllMessageSchema = z.object({
+  type: z.literal('container.list-all'),
+  requestId: z.string().min(1),
+});
+
+export type ContainerListAllMessage = z.infer<typeof ContainerListAllMessageSchema>;
 
 // --- terminal.open ---
 
@@ -195,6 +215,7 @@ export const OrchestratorMessageSchema = z.discriminatedUnion('type', [
   ContainerCreateMessageSchema,
   ContainerStopMessageSchema,
   ContainerListMessageSchema,
+  ContainerListAllMessageSchema,
   TerminalOpenMessageSchema,
   TerminalInputMessageSchema,
   TerminalResizeMessageSchema,

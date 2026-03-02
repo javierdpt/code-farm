@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { WorkerInfo } from '@/types';
+import type { WorkerInfo } from '@/core/types';
 
 interface LaunchConfigProps {
   workers: WorkerInfo[];

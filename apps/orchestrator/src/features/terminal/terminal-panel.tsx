@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback } from 'react';
-import { useTerminal } from './use-terminal';
+import { useTerminal } from '@/features/terminal/use-terminal';
 
 interface TerminalPanelProps {
   containerId: string;

@@ -44,4 +44,5 @@ class WSState {
   }
 }
 
-export const wsState = new WSState();
+const g = globalThis as unknown as { __wsState?: WSState };
+export const wsState = g.__wsState ?? (g.__wsState = new WSState());

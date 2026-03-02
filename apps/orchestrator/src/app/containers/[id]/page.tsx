@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { AppShell } from '@/components/layout/app-shell';
-import { TerminalPanel } from '@/components/terminal/terminal-panel';
-import { relativeTime } from '@/lib/format';
-import type { ContainerInfo } from '@/types';
+import { AppShell } from '@/layout/app-shell';
+import { TerminalPanel } from '@/features/terminal/terminal-panel';
+import { relativeTime } from '@/core/format';
+import type { ContainerInfo } from '@/core/types';
 
 const statusConfig: Record<string, { label: string; dotClass: string; textClass: string }> = {
   running: { label: 'Running', dotClass: 'bg-vsc-success', textClass: 'text-vsc-success' },
@@ -25,6 +25,13 @@ export default function ContainerDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
+  const [adopting, setAdopting] = useState(false);
+  const [adoptForm, setAdoptForm] = useState({
+    ticketUrl: '',
+    ticketTitle: '',
+    repoUrl: '',
+    branch: '',
+  });
 
   const fetchContainer = useCallback(async () => {
     try {
@@ -69,6 +76,32 @@ export default function ContainerDetailPage() {
       setStopping(false);
     }
   }, [containerId, stopping, fetchContainer]);
+
+  const handleAdopt = useCallback(
+    async (e: FormEvent) => {
+      e.preventDefault();
+      if (!containerId || adopting) return;
+      setAdopting(true);
+      try {
+        const res = await fetch(`/api/containers/${containerId}/adopt`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(adoptForm),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+          throw new Error(data.error || `HTTP ${res.status}`);
+        }
+        // Refresh container data on success
+        await fetchContainer();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to adopt container');
+      } finally {
+        setAdopting(false);
+      }
+    },
+    [containerId, adopting, adoptForm, fetchContainer],
+  );
 
   if (loading) {
     return (
@@ -153,32 +186,38 @@ export default function ContainerDetailPage() {
 
           {/* Detail Grid */}
           <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
-            <div className="flex items-start justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-              <span className="text-vsc-text-secondary">Ticket</span>
-              <a
-                href={container.ticketUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-2 truncate text-right text-vsc-accent-blue hover:underline"
-              >
-                {container.ticketTitle}
-              </a>
-            </div>
-            <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-              <span className="text-vsc-text-secondary">Repo</span>
-              <a
-                href={container.repoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-2 truncate text-vsc-accent-blue hover:underline"
-              >
-                {container.repoUrl}
-              </a>
-            </div>
-            <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-              <span className="text-vsc-text-secondary">Branch</span>
-              <span className="text-vsc-text-primary">{container.branch}</span>
-            </div>
+            {container.ticketTitle && (
+              <div className="flex items-start justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                <span className="text-vsc-text-secondary">Ticket</span>
+                <a
+                  href={container.ticketUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 truncate text-right text-vsc-accent-blue hover:underline"
+                >
+                  {container.ticketTitle}
+                </a>
+              </div>
+            )}
+            {container.repoUrl && (
+              <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                <span className="text-vsc-text-secondary">Repo</span>
+                <a
+                  href={container.repoUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 truncate text-vsc-accent-blue hover:underline"
+                >
+                  {container.repoUrl}
+                </a>
+              </div>
+            )}
+            {container.branch && (
+              <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                <span className="text-vsc-text-secondary">Branch</span>
+                <span className="text-vsc-text-primary">{container.branch}</span>
+              </div>
+            )}
             <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
               <span className="text-vsc-text-secondary">Worker</span>
               <span className="text-vsc-text-primary">{container.workerName}</span>
@@ -193,6 +232,69 @@ export default function ContainerDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Adopt Section — for unmanaged containers */}
+        {!container.managed && (
+          <div className="rounded border border-vsc-border bg-vsc-bg-secondary p-4">
+            <h3 className="mb-3 text-sm font-semibold text-vsc-text-primary">
+              Adopt Container
+            </h3>
+            <p className="mb-4 text-xs text-vsc-text-secondary">
+              This container is not managed by Code Farm. Fill in the details below to adopt it.
+            </p>
+            <form onSubmit={handleAdopt} className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-vsc-text-secondary">Ticket URL</span>
+                <input
+                  type="url"
+                  value={adoptForm.ticketUrl}
+                  onChange={(e) => setAdoptForm((f) => ({ ...f, ticketUrl: e.target.value }))}
+                  placeholder="https://linear.app/team/ISSUE-123"
+                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-vsc-text-secondary">Ticket Title</span>
+                <input
+                  type="text"
+                  value={adoptForm.ticketTitle}
+                  onChange={(e) => setAdoptForm((f) => ({ ...f, ticketTitle: e.target.value }))}
+                  placeholder="Fix login bug"
+                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-vsc-text-secondary">Repo URL</span>
+                <input
+                  type="url"
+                  value={adoptForm.repoUrl}
+                  onChange={(e) => setAdoptForm((f) => ({ ...f, repoUrl: e.target.value }))}
+                  placeholder="https://github.com/org/repo"
+                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-vsc-text-secondary">Branch</span>
+                <input
+                  type="text"
+                  value={adoptForm.branch}
+                  onChange={(e) => setAdoptForm((f) => ({ ...f, branch: e.target.value }))}
+                  placeholder="feat/my-branch"
+                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                />
+              </label>
+              <div className="md:col-span-2">
+                <button
+                  type="submit"
+                  disabled={adopting}
+                  className="rounded bg-vsc-accent-blue px-4 py-1.5 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80 disabled:opacity-50"
+                >
+                  {adopting ? 'Adopting...' : 'Adopt Container'}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Terminal Panel */}
         {container.status === 'running' && (
