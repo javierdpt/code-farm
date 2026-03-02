@@ -2,6 +2,35 @@
 
 A self-hosted web platform that orchestrates Claude Code development containers across multiple machines. Paste a ticket URL from GitHub (Azure DevOps/Trello/Monday planned), and it spins up a Podman container on a registered worker machine, clones the repo, generates a `CLAUDE.md` with ticket context, and gives you a full web terminal with nvim, tmux, and Claude Code — colors and all.
 
+## TL;DR
+
+```bash
+# 1. Install & build
+npm install && npm run build:packages
+
+# 2. Build the dev container image (on every worker machine)
+podman build -t localhost/claude-code-dev:latest -f containers/dev-workspace/Containerfile .
+
+# 3. Start orchestrator + local worker
+npm start                          # → http://localhost:3000
+
+# 4. Register a remote worker
+#    macOS/Linux:
+ORCHESTRATOR_URL=ws://<orchestrator-ip>:3000/ws/worker WORKER_NAME=my-worker worker-agent
+#    Windows (PowerShell):
+$env:ORCHESTRATOR_URL="ws://<orchestrator-ip>:3000/ws/worker"; $env:WORKER_NAME="my-worker"; worker-agent
+#    Windows (Git Bash):
+export ORCHESTRATOR_URL=ws://<orchestrator-ip>:3000/ws/worker WORKER_NAME=my-worker && worker-agent
+
+# 5. Stop a worker — Ctrl+C (containers keep running)
+
+# 6. Remove a container — from the UI or:
+curl -X DELETE http://localhost:3000/api/containers/<id>
+
+# 7. Uninstall the worker CLI
+npm uninstall -g @code-farm/worker-agent
+```
+
 ## Architecture
 
 ```

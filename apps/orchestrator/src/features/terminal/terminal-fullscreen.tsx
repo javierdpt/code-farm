@@ -8,17 +8,25 @@ interface TerminalFullscreenProps {
   containerId: string;
   workerId: string;
   containerName?: string;
+  workerName?: string;
+  image?: string;
   onExit?: () => void;
+  workerCount?: number;
+  containerCount?: number;
 }
 
 export function TerminalFullscreen({
   containerId,
   workerId,
   containerName,
+  workerName,
+  image,
   onExit,
+  workerCount = 0,
+  containerCount = 0,
 }: TerminalFullscreenProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, disconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, disconnect, reconnect } = useTerminal(terminalRef, {
     containerId,
     workerId,
     transparent: true,
@@ -76,7 +84,7 @@ export function TerminalFullscreen({
 
   return (
     <div
-      className="fixed inset-0 z-50"
+      className="fixed inset-0 z-50 flex flex-col"
       style={{ width: '100vw', height: '100vh', backgroundColor: 'rgba(30, 30, 30, 0.88)' }}
     >
       {/* Floating toolbar */}
@@ -133,24 +141,121 @@ export function TerminalFullscreen({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleDisconnect}
-              className="px-2.5 py-1 text-xs text-vsc-error hover:bg-vsc-hover rounded transition-colors"
-              title="Disconnect terminal session"
-            >
-              Disconnect
-            </button>
+            {isConnected ? (
+              <button
+                type="button"
+                onClick={handleDisconnect}
+                className="px-2.5 py-1 text-xs text-vsc-error hover:bg-vsc-hover rounded transition-colors"
+                title="Disconnect terminal session"
+              >
+                Disconnect
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={reconnect}
+                className="px-2.5 py-1 text-xs text-vsc-success hover:bg-vsc-hover rounded transition-colors"
+                title="Reconnect terminal session"
+              >
+                Connect
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Terminal takes full viewport */}
-      <div
-        ref={terminalRef}
-        className="relative z-0 w-full h-full"
-        style={{ padding: 4 }}
-      />
+      {/* Terminal takes remaining space */}
+      <div className="relative z-0 flex-1 w-full">
+        <div
+          ref={terminalRef}
+          className="absolute inset-0"
+          style={{ padding: 4 }}
+        />
+
+        {/* Disconnected overlay */}
+        {wasConnected && !isConnected && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
+            <div className="relative mb-6">
+              <span
+                className="absolute leading-none"
+                style={{ fontSize: 285, top: -100, right: -37, color: 'rgb(236 14 14 / 55%)' }}
+              >&#x2298;</span>
+              <svg className="mx-auto mt-2 text-vsc-text-secondary/60" width="96" height="96" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="18" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="3" y="13" width="18" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="6.5" cy="7" r="1" fill="currentColor" />
+                <circle cx="6.5" cy="17" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <p className="mb-4 text-base text-vsc-text-secondary">Terminal disconnected</p>
+            <button
+              type="button"
+              onClick={reconnect}
+              className="rounded bg-vsc-success px-6 py-2 text-sm text-white transition-colors hover:bg-vsc-success/80"
+            >
+              Connect
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom status bar */}
+      <footer className="z-10 flex h-6 shrink-0 items-center justify-between bg-vsc-status-bar px-3 text-xs text-white">
+        {/* Left: container context */}
+        <div className="flex items-center gap-3">
+          <span className="font-medium">{containerName || containerId.slice(0, 12)}</span>
+          {workerName && (
+            <>
+              <span className="text-white/40">|</span>
+              <div className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="6" cy="4" r="2" stroke="currentColor" strokeWidth="1" />
+                  <path d="M2 10C2 8 4 7 6 7C8 7 10 8 10 10" stroke="currentColor" strokeWidth="1" />
+                </svg>
+                <span>{workerName}</span>
+              </div>
+            </>
+          )}
+          {image && (
+            <>
+              <span className="text-white/40">|</span>
+              <div className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="1" y="2" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                  <rect x="1" y="7" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                </svg>
+                <span>{image}</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Right: global stats */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full ${
+                isConnected ? 'bg-green-300' : 'bg-red-300'
+              }`}
+            />
+            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="6" cy="4" r="2" stroke="currentColor" strokeWidth="1" />
+              <path d="M2 10C2 8 4 7 6 7C8 7 10 8 10 10" stroke="currentColor" strokeWidth="1" />
+            </svg>
+            <span>{workerCount} worker{workerCount !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="2" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+              <rect x="1" y="7" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+            </svg>
+            <span>{containerCount} container{containerCount !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      </footer>
 
       {/* Exit confirmation dialog */}
       <TerminalSessionDialog

@@ -13,6 +13,7 @@ interface UseTerminalOptions {
 
 interface UseTerminalReturn {
   isConnected: boolean;
+  wasConnected: boolean;
   disconnect: () => void;
   reconnect: () => void;
 }
@@ -51,6 +52,7 @@ export function useTerminal(
   const { containerId, workerId, transparent, onConnected, onDisconnected, onError } = options;
 
   const [isConnected, setIsConnected] = useState(false);
+  const [wasConnected, setWasConnected] = useState(false);
 
   const terminalInstanceRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -164,6 +166,7 @@ export function useTerminal(
           if (msg.type === 'terminal.opened') {
             sessionReadyRef.current = true;
             setIsConnected(true);
+            setWasConnected(true);
             onConnectedRef.current?.();
             return;
           }
@@ -270,5 +273,5 @@ export function useTerminal(
     };
   }, [connect, cleanup]);
 
-  return { isConnected, disconnect, reconnect };
+  return { isConnected, wasConnected, disconnect, reconnect };
 }

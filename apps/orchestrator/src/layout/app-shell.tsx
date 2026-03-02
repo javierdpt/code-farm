@@ -74,7 +74,7 @@ export function AppShell({
               className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain"
               style={{ backgroundImage: 'url(/images/logo.png)', backgroundAttachment: 'fixed' }}
             />
-            <div className="pointer-events-none absolute inset-0 bg-vsc-bg-primary/95" />
+            <div className="pointer-events-none absolute inset-0 bg-vsc-bg-primary/93" />
 
             <div className="relative z-10 flex-1 p-6">
               {children}

@@ -1,8 +1,9 @@
 'use client';
 
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { TerminalFullscreen } from '@/features/terminal/terminal-fullscreen';
+import type { ContainerInfo } from '@/core/types';
 
 export default function FullscreenTerminalPage() {
   const params = useParams<{ id: string }>();
@@ -11,6 +12,40 @@ export default function FullscreenTerminalPage() {
 
   const containerId = params.id;
   const workerId = searchParams.get('worker') ?? '';
+
+  const [container, setContainer] = useState<ContainerInfo | null>(null);
+  const [workerCount, setWorkerCount] = useState(0);
+  const [containerCount, setContainerCount] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [containerRes, workersRes, containersRes] = await Promise.all([
+          fetch(`/api/containers/${containerId}`),
+          fetch('/api/workers'),
+          fetch('/api/containers'),
+        ]);
+        if (containerRes.ok) {
+          const data = await containerRes.json();
+          setContainer(data.container);
+        }
+        if (workersRes.ok) {
+          const data = await workersRes.json();
+          const online = (data.workers ?? []).filter((w: { status: string }) => w.status === 'online');
+          setWorkerCount(online.length);
+        }
+        if (containersRes.ok) {
+          const data = await containersRes.json();
+          setContainerCount((data.containers ?? []).length);
+        }
+      } catch {
+        // ignore
+      }
+    };
+    fetchData();
+    const interval = setInterval(fetchData, 10000);
+    return () => clearInterval(interval);
+  }, [containerId]);
 
   const handleExit = useCallback(() => {
     router.push(`/containers/${containerId}`);
@@ -37,7 +72,12 @@ export default function FullscreenTerminalPage() {
     <TerminalFullscreen
       containerId={containerId}
       workerId={workerId}
+      containerName={container?.name}
+      workerName={container?.workerName}
+      image={container?.image}
       onExit={handleExit}
+      workerCount={workerCount}
+      containerCount={containerCount}
     />
   );
 }

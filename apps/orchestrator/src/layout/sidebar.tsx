@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 
-
 const navItems = [
   {
     label: 'Dashboard',
@@ -55,6 +54,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   // Auto-collapse on mobile
   useEffect(() => {
@@ -69,11 +69,57 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`relative flex flex-col border-r border-vsc-border bg-vsc-bg-secondary/90 transition-all duration-200 ${
+      className={`flex flex-col border-r border-vsc-border bg-vsc-bg-secondary/90 transition-all duration-200 ${
         collapsed ? 'w-[60px]' : 'w-[240px]'
       }`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
-      {/* Navigation at the top */}
+      {/* Header: logo + collapse button */}
+      <div className={`flex h-12 items-center border-b border-vsc-border px-3 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+        {!collapsed ? (
+          <>
+            <Image
+              src="/images/logo-small-with-text.png"
+              alt="Code Farm"
+              width={160}
+              height={36}
+              className="h-7 w-auto object-contain"
+              priority
+            />
+            <button
+              onClick={() => setCollapsed(true)}
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-vsc-text-secondary hover:bg-vsc-hover hover:text-vsc-text-primary transition-colors"
+              aria-label="Collapse sidebar"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </>
+        ) : hovered ? (
+          <button
+            onClick={() => setCollapsed(false)}
+            className="flex h-7 w-7 items-center justify-center rounded text-vsc-text-secondary hover:bg-vsc-hover hover:text-vsc-text-primary transition-colors"
+            aria-label="Expand sidebar"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" className="rotate-180">
+              <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        ) : (
+          <Image
+            src="/images/logo-small.png"
+            alt="Code Farm"
+            width={32}
+            height={32}
+            className="h-7 w-7 object-contain"
+            priority
+          />
+        )}
+      </div>
+
+      {/* Navigation */}
       <nav className="flex-1 py-2">
         <ul className="space-y-0.5 px-2">
           {navItems.map((item) => {
@@ -97,48 +143,6 @@ export function Sidebar() {
           })}
         </ul>
       </nav>
-
-      {/* Logo at the bottom */}
-      <div className={`flex items-center justify-center ${collapsed ? 'px-2 pb-10' : 'p-1 pb-10'}`}>
-        {!collapsed && (
-          <Image
-            src="/images/logo.png"
-            alt="Code Farm"
-            width={200}
-            height={200}
-            className="h-auto w-full object-contain"
-            priority
-          />
-        )}
-        {collapsed && (
-          <Image
-            src="/images/logo-small.png"
-            alt="Code Farm"
-            width={40}
-            height={40}
-            className="h-auto w-full object-contain"
-            priority
-          />
-        )}
-      </div>
-
-      {/* Collapse button — absolute positioned bottom-right */}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className={`absolute bottom-2 flex h-7 w-7 items-center justify-center rounded text-vsc-text-secondary hover:bg-vsc-hover hover:text-vsc-text-primary transition-colors ${collapsed ? 'left-1/2 -translate-x-1/2' : 'right-2'}`}
-        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 16 16"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={`transition-transform ${collapsed ? 'rotate-180' : ''}`}
-        >
-          <path d="M10 12L6 8L10 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
     </aside>
   );
 }

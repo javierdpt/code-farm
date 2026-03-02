@@ -17,7 +17,7 @@ export function TerminalPanel({
   onFullscreen,
 }: TerminalPanelProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, disconnect, reconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, disconnect, reconnect } = useTerminal(terminalRef, {
     containerId,
     workerId,
   });
@@ -47,7 +47,7 @@ export function TerminalPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {!isConnected && (
+          {wasConnected && !isConnected && (
             <button
               type="button"
               onClick={handleReconnect}
@@ -92,6 +92,32 @@ export function TerminalPanel({
           className="absolute inset-0"
           style={{ padding: 4 }}
         />
+
+        {/* Disconnected overlay */}
+        {wasConnected && !isConnected && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-vsc-bg-primary/90">
+            <div className="relative mb-4">
+              <span
+                className="absolute leading-none"
+                style={{ fontSize: 142, top: -50, right: -18, color: 'rgb(236 14 14 / 55%)' }}
+              >&#x2298;</span>
+              <svg className="mx-auto mt-1 text-vsc-text-secondary/60" width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="18" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                <rect x="3" y="13" width="18" height="8" rx="1" stroke="currentColor" strokeWidth="1.5" />
+                <circle cx="6.5" cy="7" r="1" fill="currentColor" />
+                <circle cx="6.5" cy="17" r="1" fill="currentColor" />
+              </svg>
+            </div>
+            <p className="mb-3 text-sm text-vsc-text-secondary">Terminal disconnected</p>
+            <button
+              type="button"
+              onClick={handleReconnect}
+              className="rounded bg-vsc-success px-4 py-1.5 text-xs text-white transition-colors hover:bg-vsc-success/80"
+            >
+              Connect
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
