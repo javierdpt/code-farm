@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useTerminal } from '@/features/terminal/use-terminal';
+import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
 
 interface TerminalFullscreenProps {
   containerId: string;
@@ -20,12 +21,14 @@ export function TerminalFullscreen({
   const { isConnected, disconnect } = useTerminal(terminalRef, {
     containerId,
     workerId,
+    transparent: true,
   });
 
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Auto-hide toolbar after 3 seconds
+  // Auto-hide toolbar after 1.5 seconds
   const resetHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
@@ -33,60 +36,48 @@ export function TerminalFullscreen({
     setToolbarVisible(true);
     hideTimerRef.current = setTimeout(() => {
       setToolbarVisible(false);
-    }, 3000);
+    }, 1500);
   }, []);
 
-  // Show toolbar when mouse enters the top 60px area
+  // Show toolbar when mouse enters the top 10px area
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (e.clientY <= 60) {
+      if (e.clientY <= 10) {
         resetHideTimer();
       }
     },
     [resetHideTimer]
   );
 
-  // Escape key exits fullscreen
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onExit?.();
-      }
-    },
-    [onExit]
-  );
-
   useEffect(() => {
     document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('keydown', handleKeyDown);
 
     // Start the initial hide timer
     const timer = setTimeout(() => {
       setToolbarVisible(false);
-    }, 3000);
+    }, 1500);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('keydown', handleKeyDown);
       clearTimeout(timer);
       if (hideTimerRef.current) {
         clearTimeout(hideTimerRef.current);
       }
     };
-  }, [handleMouseMove, handleKeyDown]);
+  }, [handleMouseMove]);
 
   const handleDisconnect = useCallback(() => {
     disconnect();
   }, [disconnect]);
 
   const handleBack = useCallback(() => {
-    onExit?.();
-  }, [onExit]);
+    setShowExitDialog(true);
+  }, []);
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-vsc-bg-primary"
-      style={{ width: '100vw', height: '100vh' }}
+      className="fixed inset-0 z-50"
+      style={{ width: '100vw', height: '100vh', backgroundColor: 'rgba(30, 30, 30, 0.88)' }}
     >
       {/* Floating toolbar */}
       <div
@@ -115,10 +106,12 @@ export function TerminalFullscreen({
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <line x1="19" y1="12" x2="5" y2="12" />
-                <polyline points="12 19 5 12 12 5" />
+                <polyline points="4 14 10 14 10 20" />
+                <polyline points="20 10 14 10 14 4" />
+                <line x1="14" y1="10" x2="21" y2="3" />
+                <line x1="3" y1="21" x2="10" y2="14" />
               </svg>
-              Back
+              Exit Fullscreen
             </button>
 
             <div className="w-px h-4 bg-vsc-border" />
@@ -148,9 +141,6 @@ export function TerminalFullscreen({
             >
               Disconnect
             </button>
-            <span className="text-xs text-vsc-text-secondary">
-              ESC to exit
-            </span>
           </div>
         </div>
       </div>
@@ -158,8 +148,18 @@ export function TerminalFullscreen({
       {/* Terminal takes full viewport */}
       <div
         ref={terminalRef}
-        className="w-full h-full"
+        className="relative z-0 w-full h-full"
         style={{ padding: 4 }}
+      />
+
+      {/* Exit confirmation dialog */}
+      <TerminalSessionDialog
+        open={showExitDialog}
+        onConfirm={() => {
+          setShowExitDialog(false);
+          onExit?.();
+        }}
+        onCancel={() => setShowExitDialog(false)}
       />
     </div>
   );

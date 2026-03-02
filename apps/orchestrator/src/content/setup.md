@@ -141,10 +141,127 @@ The worker agent is a lightweight Node.js daemon that:
 
 If the connection drops, the agent automatically reconnects with exponential backoff (1s, 2s, 4s, ... up to 30s).
 
+## Stopping and Managing the Worker Agent
+
+### Stop the Worker
+
+If running in the foreground, press `Ctrl+C`. The agent handles shutdown gracefully — it stops heartbeats, closes terminal sessions, and disconnects from the orchestrator.
+
+If running in the background:
+
+```bash
+# Find and stop the worker process
+kill $(pgrep -f worker-agent)
+```
+
+### Check if a Worker Is Running
+
+```bash
+pgrep -fl worker-agent
+```
+
+### Run as a Background Service (macOS launchd)
+
+Create `~/Library/LaunchAgents/com.code-farm.worker-agent.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.code-farm.worker-agent</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/local/bin/worker-agent</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>ORCHESTRATOR_URL</key>
+    <string>ws://orchestrator-host:3000/ws/worker</string>
+    <key>WORKER_NAME</key>
+    <string>my-machine</string>
+  </dict>
+  <key>KeepAlive</key>
+  <true/>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/tmp/worker-agent.log</string>
+  <key>StandardErrorPath</key>
+  <string>/tmp/worker-agent.err</string>
+</dict>
+</plist>
+```
+
+Then load/unload it:
+
+```bash
+# Start the service
+launchctl load ~/Library/LaunchAgents/com.code-farm.worker-agent.plist
+
+# Stop the service
+launchctl unload ~/Library/LaunchAgents/com.code-farm.worker-agent.plist
+```
+
+### Run as a Background Service (Linux systemd)
+
+Create `/etc/systemd/system/code-farm-worker.service`:
+
+```ini
+[Unit]
+Description=Code Farm Worker Agent
+After=network.target
+
+[Service]
+Type=simple
+Environment=ORCHESTRATOR_URL=ws://orchestrator-host:3000/ws/worker
+Environment=WORKER_NAME=my-machine
+ExecStart=/usr/local/bin/worker-agent
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Then manage it:
+
+```bash
+# Start
+sudo systemctl start code-farm-worker
+
+# Stop
+sudo systemctl stop code-farm-worker
+
+# Enable auto-start on boot
+sudo systemctl enable code-farm-worker
+
+# Check status
+sudo systemctl status code-farm-worker
+
+# View logs
+journalctl -u code-farm-worker -f
+```
+
 ## Uninstalling the Worker Agent
 
 ```bash
 npm uninstall -g @code-farm/worker-agent
+```
+
+To also remove the service (if configured):
+
+```bash
+# macOS
+launchctl unload ~/Library/LaunchAgents/com.code-farm.worker-agent.plist
+rm ~/Library/LaunchAgents/com.code-farm.worker-agent.plist
+
+# Linux
+sudo systemctl stop code-farm-worker
+sudo systemctl disable code-farm-worker
+sudo rm /etc/systemd/system/code-farm-worker.service
+sudo systemctl daemon-reload
 ```
 
 ## Multi-Machine Setup

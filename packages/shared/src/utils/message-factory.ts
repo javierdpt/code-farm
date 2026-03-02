@@ -2,7 +2,9 @@ import type {
   WorkerRegisterMessage,
   WorkerHeartbeatMessage,
   ContainerCreatedMessage,
+  ContainerStartedMessage,
   ContainerStoppedMessage,
+  ContainerRemovedMessage,
   ContainerListResponseMessage,
   ContainerListAllResponseMessage,
   TerminalOpenedMessage,
@@ -10,7 +12,9 @@ import type {
   TerminalClosedMessage,
   WorkerAcceptedMessage,
   ContainerCreateMessage,
+  ContainerStartMessage,
   ContainerStopMessage,
+  ContainerRemoveMessage,
   ContainerListMessage,
   ContainerListAllMessage,
   TerminalOpenMessage,
@@ -67,12 +71,36 @@ export function createContainerCreated(
   };
 }
 
+export function createContainerStarted(
+  requestId: string,
+  container: ContainerInfo,
+): ContainerStartedMessage {
+  return {
+    type: 'container.started',
+    requestId,
+    container,
+  };
+}
+
 export function createContainerStopped(
   requestId: string,
   containerId: string,
+  container?: ContainerInfo,
 ): ContainerStoppedMessage {
   return {
     type: 'container.stopped',
+    requestId,
+    containerId,
+    ...(container ? { container } : {}),
+  };
+}
+
+export function createContainerRemoved(
+  requestId: string,
+  containerId: string,
+): ContainerRemovedMessage {
+  return {
+    type: 'container.removed',
     requestId,
     containerId,
   };
@@ -146,12 +174,34 @@ export function createContainerCreate(
   };
 }
 
+export function createContainerStart(
+  requestId: string,
+  containerId: string,
+): ContainerStartMessage {
+  return {
+    type: 'container.start',
+    requestId,
+    containerId,
+  };
+}
+
 export function createContainerStop(
   requestId: string,
   containerId: string,
 ): ContainerStopMessage {
   return {
     type: 'container.stop',
+    requestId,
+    containerId,
+  };
+}
+
+export function createContainerRemove(
+  requestId: string,
+  containerId: string,
+): ContainerRemoveMessage {
+  return {
+    type: 'container.remove',
     requestId,
     containerId,
   };

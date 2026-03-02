@@ -10,7 +10,9 @@ import type {
   WorkerRegisterMessage,
   WorkerHeartbeatMessage,
   ContainerCreatedMessage,
+  ContainerStartedMessage,
   ContainerStoppedMessage,
+  ContainerRemovedMessage,
   ContainerListResponseMessage,
   ContainerListAllResponseMessage,
   TerminalOpenedMessage,
@@ -121,10 +123,13 @@ async function handleMessage(raw: unknown): Promise<void> {
           }
         }
 
+        // Fetch stats for newly created container (best-effort)
+        const detailed = await containerManager.inspectWithStats(info.id);
+
         const response: ContainerCreatedMessage = {
           type: 'container.created',
           requestId: msg.requestId,
-          container: info,
+          container: detailed,
         };
         wsClient.send(response);
       } catch (err) {
@@ -138,19 +143,64 @@ async function handleMessage(raw: unknown): Promise<void> {
       break;
     }
 
+    case 'container.start': {
+      try {
+        await containerManager.start(msg.containerId);
+        // Fetch with stats now that it's running
+        const info = await containerManager.inspectWithStats(msg.containerId);
+        const response: ContainerStartedMessage = {
+          type: 'container.started',
+          requestId: msg.requestId,
+          container: info,
+        };
+        wsClient.send(response);
+      } catch (err) {
+        console.error('[WorkerAgent] container.start failed:', err);
+        wsClient.send({
+          type: 'container.start.error',
+          requestId: msg.requestId,
+          containerId: msg.containerId,
+          error: (err as Error).message,
+        });
+      }
+      break;
+    }
+
     case 'container.stop': {
       try {
-        await containerManager.stop(msg.containerId);
+        const info = await containerManager.stop(msg.containerId);
         const response: ContainerStoppedMessage = {
           type: 'container.stopped',
           requestId: msg.requestId,
           containerId: msg.containerId,
+          container: info,
         };
         wsClient.send(response);
       } catch (err) {
         console.error('[WorkerAgent] container.stop failed:', err);
         wsClient.send({
           type: 'container.stop.error',
+          requestId: msg.requestId,
+          containerId: msg.containerId,
+          error: (err as Error).message,
+        });
+      }
+      break;
+    }
+
+    case 'container.remove': {
+      try {
+        await containerManager.remove(msg.containerId);
+        const response: ContainerRemovedMessage = {
+          type: 'container.removed',
+          requestId: msg.requestId,
+          containerId: msg.containerId,
+        };
+        wsClient.send(response);
+      } catch (err) {
+        console.error('[WorkerAgent] container.remove failed:', err);
+        wsClient.send({
+          type: 'container.remove.error',
           requestId: msg.requestId,
           containerId: msg.containerId,
           error: (err as Error).message,

@@ -288,7 +288,36 @@ $env:WORKER_NAME="my-machine"
 worker-agent
 ```
 
-To uninstall:
+### Stopping the worker
+
+Press `Ctrl+C` if running in foreground. The agent shuts down gracefully (stops heartbeats, closes terminals, disconnects).
+
+If running in the background:
+
+```bash
+kill $(pgrep -f worker-agent)
+```
+
+### Running as a service
+
+On **macOS**, create a launchd plist at `~/Library/LaunchAgents/com.code-farm.worker-agent.plist` with `KeepAlive` and `RunAtLoad` set to true. Then:
+
+```bash
+launchctl load ~/Library/LaunchAgents/com.code-farm.worker-agent.plist    # start
+launchctl unload ~/Library/LaunchAgents/com.code-farm.worker-agent.plist  # stop
+```
+
+On **Linux**, create a systemd unit at `/etc/systemd/system/code-farm-worker.service` with `Restart=always`. Then:
+
+```bash
+sudo systemctl enable --now code-farm-worker   # start + enable on boot
+sudo systemctl stop code-farm-worker           # stop
+journalctl -u code-farm-worker -f              # view logs
+```
+
+See the **Setup Guide** in the web UI (`/docs`) for full service configuration examples.
+
+### Uninstalling
 
 ```bash
 npm uninstall -g @code-farm/worker-agent

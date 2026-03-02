@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateRequestId, createContainerRemove } from '@code-farm/shared';
+import { generateRequestId, createContainerStop } from '@code-farm/shared';
 import { wsState } from '@/core/ws-state';
 
-export async function GET(
+export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -13,22 +13,15 @@ export async function GET(
     return NextResponse.json({ error: 'Container not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ container });
-}
-
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
-) {
-  const { id } = await params;
-  const container = wsState.containers.get(id);
-
-  if (!container) {
-    return NextResponse.json({ error: 'Container not found' }, { status: 404 });
+  if (container.status !== 'running') {
+    return NextResponse.json(
+      { error: `Container is not running (status: ${container.status})` },
+      { status: 409 },
+    );
   }
 
   const requestId = generateRequestId();
-  const message = createContainerRemove(requestId, id);
+  const message = createContainerStop(requestId, id);
 
   try {
     await wsState.sendRequest(container.workerId, { ...message, requestId }, 30000);
@@ -36,7 +29,7 @@ export async function DELETE(
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json(
-      { error: `Failed to remove container: ${errorMessage}` },
+      { error: `Failed to stop container: ${errorMessage}` },
       { status: 500 },
     );
   }

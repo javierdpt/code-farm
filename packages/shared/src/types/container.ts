@@ -12,6 +12,18 @@ export const ContainerStatusSchema = z.enum([
 
 export type ContainerStatus = z.infer<typeof ContainerStatusSchema>;
 
+// --- Container Resources ---
+
+export const ContainerResourcesSchema = z.object({
+  memoryLimit: z.number().nonnegative(),   // bytes, 0 = unlimited
+  cpuLimit: z.number().nonnegative(),      // nanoseconds (NanoCpus), 0 = unlimited
+  diskUsage: z.number().nonnegative(),     // bytes
+  memoryUsage: z.number().nonnegative(),   // bytes, 0 if stopped
+  cpuPercent: z.number().nonnegative(),    // percentage, 0 if stopped
+});
+
+export type ContainerResources = z.infer<typeof ContainerResourcesSchema>;
+
 // --- Container Info ---
 
 export const ContainerInfoSchema = z.object({
@@ -27,6 +39,7 @@ export const ContainerInfoSchema = z.object({
   createdAt: z.coerce.date(),
   image: z.string().min(1),
   managed: z.boolean().default(false),
+  resources: ContainerResourcesSchema.optional(),
 });
 
 export type ContainerInfo = z.infer<typeof ContainerInfoSchema>;

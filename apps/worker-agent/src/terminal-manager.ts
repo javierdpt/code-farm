@@ -1,10 +1,10 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import * as pty from 'node-pty';
 import { randomBytes } from 'node:crypto';
 
 interface TerminalSession {
   sessionId: string;
   containerId: string;
-  process: ChildProcess;
+  ptyProcess: pty.IPty;
   cols: number;
   rows: number;
 }
@@ -12,9 +12,8 @@ interface TerminalSession {
 /**
  * Manages interactive terminal sessions inside Podman containers.
  *
- * Each session spawns `podman exec -it` as a child process with piped stdio.
- * Data is forwarded via callbacks so it can be relayed over WebSocket
- * to the frontend.
+ * Each session spawns `podman exec -it` via node-pty to provide a real
+ * pseudo-terminal with proper input echo, line editing, and signal support.
  */
 export class TerminalManager {
   private sessions = new Map<string, TerminalSession>();
@@ -38,52 +37,44 @@ export class TerminalManager {
   ): string {
     const sessionId = randomBytes(8).toString('hex');
 
-    const child = spawn(
+    // Build env with all string values (node-pty requires Record<string, string>)
+    const env: Record<string, string> = {};
+    for (const [k, v] of Object.entries(process.env)) {
+      if (v !== undefined) env[k] = v;
+    }
+    env.TERM = 'xterm-256color';
+
+    const ptyProcess = pty.spawn(
       'podman',
       ['exec', '-it', containerId, '/bin/bash'],
       {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          TERM: 'xterm-256color',
-          COLUMNS: String(cols),
-          LINES: String(rows),
-        },
+        name: 'xterm-256color',
+        cols,
+        rows,
+        env,
       },
     );
 
     const session: TerminalSession = {
       sessionId,
       containerId,
-      process: child,
+      ptyProcess,
       cols,
       rows,
     };
 
     this.sessions.set(sessionId, session);
 
-    child.stdout?.on('data', (chunk: Buffer) => {
-      onData(chunk);
+    ptyProcess.onData((data: string) => {
+      onData(Buffer.from(data));
     });
 
-    child.stderr?.on('data', (chunk: Buffer) => {
-      onData(chunk);
-    });
-
-    child.on('exit', (code) => {
+    ptyProcess.onExit(({ exitCode }) => {
       this.sessions.delete(sessionId);
       console.log(
-        `[WorkerAgent] Terminal session ${sessionId} exited (code=${code})`,
+        `[WorkerAgent] Terminal session ${sessionId} exited (code=${exitCode})`,
       );
-      onExit(code);
-    });
-
-    child.on('error', (err) => {
-      console.error(
-        `[WorkerAgent] Terminal session ${sessionId} error: ${err.message}`,
-      );
-      this.sessions.delete(sessionId);
-      onExit(1);
+      onExit(exitCode);
     });
 
     console.log(
@@ -105,22 +96,11 @@ export class TerminalManager {
       return;
     }
 
-    if (!session.process.stdin?.writable) {
-      console.warn(
-        `[WorkerAgent] Cannot write: terminal session ${sessionId} stdin is not writable`,
-      );
-      return;
-    }
-
-    session.process.stdin.write(data);
+    session.ptyProcess.write(data.toString());
   }
 
   /**
    * Resize a terminal session.
-   *
-   * Since we are not using node-pty, true PTY resize is not available.
-   * We store the new dimensions and attempt to run `stty` inside the
-   * container to propagate the size.
    */
   resize(sessionId: string, cols: number, rows: number): void {
     const session = this.sessions.get(sessionId);
@@ -133,17 +113,11 @@ export class TerminalManager {
 
     session.cols = cols;
     session.rows = rows;
-
-    // Attempt to set terminal size via stty. This may not work perfectly
-    // without a true PTY, but it is the best effort approach.
-    const sttyCmd = `stty rows ${rows} cols ${cols} 2>/dev/null\n`;
-    if (session.process.stdin?.writable) {
-      session.process.stdin.write(sttyCmd);
-    }
+    session.ptyProcess.resize(cols, rows);
   }
 
   /**
-   * Close a terminal session by killing its child process.
+   * Close a terminal session by killing its process.
    */
   close(sessionId: string): void {
     const session = this.sessions.get(sessionId);
@@ -155,15 +129,8 @@ export class TerminalManager {
     }
 
     console.log(`[WorkerAgent] Closing terminal session ${sessionId}`);
-    session.process.kill('SIGTERM');
-
-    // Force kill after a short grace period
-    setTimeout(() => {
-      if (this.sessions.has(sessionId)) {
-        session.process.kill('SIGKILL');
-        this.sessions.delete(sessionId);
-      }
-    }, 3000);
+    session.ptyProcess.kill();
+    this.sessions.delete(sessionId);
   }
 
   /**

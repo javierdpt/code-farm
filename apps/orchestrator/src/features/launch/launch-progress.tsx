@@ -52,6 +52,11 @@ function StepIcon({ status }: { status: StepStatus }) {
   }
 }
 
+function isImageError(error: string): boolean {
+  const patterns = ['unable to copy from source', 'image not known', 'manifest unknown', 'pull access denied', 'not found in any registr'];
+  return patterns.some((p) => error.toLowerCase().includes(p.toLowerCase()));
+}
+
 export function LaunchProgress({ steps, containerId, error }: LaunchProgressProps) {
   const allDone = steps.every((s) => s.status === 'success');
 
@@ -87,8 +92,19 @@ export function LaunchProgress({ steps, containerId, error }: LaunchProgressProp
 
       {/* Error Message */}
       {error && (
-        <div className="rounded border border-vsc-error/30 bg-vsc-error/10 px-3 py-2 text-sm text-vsc-error">
-          {error}
+        <div className="space-y-2 rounded border border-vsc-error/30 bg-vsc-error/10 px-3 py-2">
+          <p className="text-sm text-vsc-error">{error}</p>
+          {isImageError(error) && (
+            <p className="text-xs text-vsc-text-secondary">
+              The container image was not found. Make sure you have built it locally.{' '}
+              <Link
+                href="/docs"
+                className="text-vsc-accent-blue underline hover:text-vsc-accent-blue/80"
+              >
+                See the Setup Guide
+              </Link>
+            </p>
+          )}
         </div>
       )}
 

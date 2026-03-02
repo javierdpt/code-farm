@@ -42,15 +42,25 @@ export function WorkerCard({ worker }: WorkerCardProps) {
           <span className="text-vsc-text-primary">{platformLabel}</span>
         </div>
         <div className="flex items-center justify-between">
-          <span>CPUs</span>
-          <span className="text-vsc-text-primary">{worker.cpuCount}</span>
+          <span>CPU</span>
+          <span className="text-vsc-text-primary">
+            {worker.cpuUsage != null ? `${worker.cpuUsage}%` : '—'} ({worker.cpuCount} cores)
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span>Memory</span>
           <span className="text-vsc-text-primary">
-            {formatBytes(worker.memoryFree)} / {formatBytes(worker.memoryTotal)}
+            {formatBytes(worker.memoryTotal - worker.memoryFree)} / {formatBytes(worker.memoryTotal)}
           </span>
         </div>
+        {worker.diskTotal != null && worker.diskTotal > 0 && (
+          <div className="flex items-center justify-between">
+            <span>Disk</span>
+            <span className="text-vsc-text-primary">
+              {formatBytes(worker.diskTotal - (worker.diskFree ?? 0))} / {formatBytes(worker.diskTotal)}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <span>Containers</span>
           <span className="text-vsc-text-primary">{worker.containersRunning}</span>

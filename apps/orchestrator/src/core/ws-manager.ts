@@ -23,6 +23,8 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
       workerRegistry.updateHeartbeat(workerId, {
         cpuUsage: message.cpuUsage,
         memoryFree: message.memoryFree,
+        diskTotal: message.diskTotal,
+        diskFree: message.diskFree,
         containersRunning: message.containersRunning,
       });
       break;
@@ -36,10 +38,30 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
       break;
     }
 
+    case 'container.started': {
+      // Update container in shared state with running status
+      wsState.containers.set(message.container.id, message.container);
+      wsState.resolveRequest(message.requestId, message.container);
+      break;
+    }
+
     case 'container.stopped': {
-      // Remove container from shared state
+      // Update container status (keep it in state, don't delete)
+      if (message.container) {
+        wsState.containers.set(message.containerId, message.container);
+      } else {
+        const existing = wsState.containers.get(message.containerId);
+        if (existing) {
+          wsState.containers.set(message.containerId, { ...existing, status: 'stopped' });
+        }
+      }
+      wsState.resolveRequest(message.requestId, { containerId: message.containerId });
+      break;
+    }
+
+    case 'container.removed': {
+      // Remove container from shared state permanently
       wsState.containers.delete(message.containerId);
-      // Resolve pending request
       wsState.resolveRequest(message.requestId, { containerId: message.containerId });
       break;
     }
@@ -97,6 +119,19 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
     case 'worker.register': {
       // Should not happen after initial registration, ignore
       console.warn(`[WSManager] Unexpected worker.register from already-registered worker ${workerId}`);
+      break;
+    }
+
+    // Error responses from worker
+    case 'container.create.error':
+    case 'container.start.error':
+    case 'container.stop.error':
+    case 'container.remove.error':
+    case 'container.list.error':
+    case 'container.list-all.error':
+    case 'terminal.open.error': {
+      console.error(`[WSManager] Worker error (${message.type}): ${message.error}`);
+      wsState.rejectRequest(message.requestId, message.error);
       break;
     }
   }

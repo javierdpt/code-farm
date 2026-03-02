@@ -1,4 +1,5 @@
 import os from 'node:os';
+import fs from 'node:fs';
 import { HEARTBEAT_INTERVAL } from '@code-farm/shared';
 import type { WorkerHeartbeatMessage } from '@code-farm/shared';
 
@@ -73,10 +74,23 @@ export class HeartbeatReporter {
       // If we can't count containers, send 0 rather than failing the heartbeat
     }
 
+    // Disk stats (root filesystem)
+    let diskTotal = 0;
+    let diskFree = 0;
+    try {
+      const disk = fs.statfsSync('/');
+      diskTotal = disk.blocks * disk.bsize;
+      diskFree = disk.bavail * disk.bsize;
+    } catch {
+      // Disk stats unavailable on some platforms
+    }
+
     this.sendFn({
       type: 'worker.heartbeat',
       cpuUsage,
       memoryFree,
+      diskTotal,
+      diskFree,
       containersRunning,
     });
   }

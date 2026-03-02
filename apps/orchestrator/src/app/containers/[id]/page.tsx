@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { AppShell } from '@/layout/app-shell';
 import { TerminalPanel } from '@/features/terminal/terminal-panel';
-import { relativeTime } from '@/core/format';
+import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
+import { relativeTime, formatBytes } from '@/core/format';
 import type { ContainerInfo } from '@/core/types';
 
 const statusConfig: Record<string, { label: string; dotClass: string; textClass: string }> = {
@@ -24,8 +24,11 @@ export default function ContainerDetailPage() {
   const [container, setContainer] = useState<ContainerInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
   const [stopping, setStopping] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [adopting, setAdopting] = useState(false);
+  const [showFullscreenDialog, setShowFullscreenDialog] = useState(false);
   const [adoptForm, setAdoptForm] = useState({
     ticketUrl: '',
     ticketTitle: '',
@@ -59,16 +62,32 @@ export default function ContainerDetailPage() {
     return () => clearInterval(interval);
   }, [fetchContainer]);
 
-  const handleStop = useCallback(async () => {
-    if (!containerId || stopping) return;
-    setStopping(true);
+  const handleStart = useCallback(async () => {
+    if (!containerId || starting) return;
+    setStarting(true);
     try {
-      const res = await fetch(`/api/containers/${containerId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/containers/${containerId}/start`, { method: 'POST' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(data.error || `HTTP ${res.status}`);
       }
-      // Refresh data
+      await fetchContainer();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start container');
+    } finally {
+      setStarting(false);
+    }
+  }, [containerId, starting, fetchContainer]);
+
+  const handleStop = useCallback(async () => {
+    if (!containerId || stopping) return;
+    setStopping(true);
+    try {
+      const res = await fetch(`/api/containers/${containerId}/stop`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
       await fetchContainer();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to stop container');
@@ -76,6 +95,23 @@ export default function ContainerDetailPage() {
       setStopping(false);
     }
   }, [containerId, stopping, fetchContainer]);
+
+  const handleRemove = useCallback(async () => {
+    if (!containerId || removing) return;
+    setRemoving(true);
+    try {
+      const res = await fetch(`/api/containers/${containerId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      router.push('/containers');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove container');
+    } finally {
+      setRemoving(false);
+    }
+  }, [containerId, removing, router]);
 
   const handleAdopt = useCallback(
     async (e: FormEvent) => {
@@ -142,7 +178,7 @@ export default function ContainerDetailPage() {
       title={container.name}
       breadcrumb={['Containers', container.name]}
     >
-      <div className="space-y-6">
+      <div className="flex h-full flex-col gap-6">
         {/* Error Banner */}
         {error && (
           <div className="rounded border border-vsc-error/30 bg-vsc-error/10 px-3 py-2 text-sm text-vsc-error">
@@ -165,21 +201,42 @@ export default function ContainerDetailPage() {
             <div className="flex items-center gap-2">
               {container.status === 'running' && (
                 <>
-                  <Link
-                    href={`/terminal/${containerId}?worker=${container.workerId}`}
+                  <button
+                    type="button"
+                    onClick={() => setShowFullscreenDialog(true)}
                     className="rounded bg-vsc-accent-blue px-3 py-1.5 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80"
                   >
                     Open Fullscreen Terminal
-                  </Link>
+                  </button>
                   <button
                     type="button"
                     onClick={handleStop}
                     disabled={stopping}
-                    className="rounded border border-vsc-error/50 px-3 py-1.5 text-xs text-vsc-error transition-colors hover:bg-vsc-error/10 disabled:opacity-50"
+                    className="rounded border border-vsc-warning/50 px-3 py-1.5 text-xs text-vsc-warning transition-colors hover:bg-vsc-warning/10 disabled:opacity-50"
                   >
                     {stopping ? 'Stopping...' : 'Stop'}
                   </button>
                 </>
+              )}
+              {container.status === 'stopped' && (
+                <button
+                  type="button"
+                  onClick={handleStart}
+                  disabled={starting}
+                  className="rounded bg-vsc-success px-3 py-1.5 text-xs text-white transition-colors hover:bg-vsc-success/80 disabled:opacity-50"
+                >
+                  {starting ? 'Starting...' : 'Start'}
+                </button>
+              )}
+              {(container.status === 'stopped' || container.status === 'running') && (
+                <button
+                  type="button"
+                  onClick={handleRemove}
+                  disabled={removing}
+                  className="rounded border border-vsc-error/50 px-3 py-1.5 text-xs text-vsc-error transition-colors hover:bg-vsc-error/10 disabled:opacity-50"
+                >
+                  {removing ? 'Removing...' : 'Remove'}
+                </button>
               )}
             </div>
           </div>
@@ -230,6 +287,28 @@ export default function ContainerDetailPage() {
               <span className="text-vsc-text-secondary">Created</span>
               <span className="text-vsc-text-primary">{relativeTime(container.createdAt)}</span>
             </div>
+            {container.resources && (
+              <>
+                <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                  <span className="text-vsc-text-secondary">CPU</span>
+                  <span className="text-vsc-text-primary">
+                    {container.status === 'running' ? `${container.resources.cpuPercent.toFixed(1)}%` : '--'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                  <span className="text-vsc-text-secondary">Memory</span>
+                  <span className="text-vsc-text-primary">
+                    {container.status === 'running' ? formatBytes(container.resources.memoryUsage) : '--'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                  <span className="text-vsc-text-secondary">Disk</span>
+                  <span className="text-vsc-text-primary">
+                    {container.resources.diskUsage > 0 ? formatBytes(container.resources.diskUsage) : '--'}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
@@ -301,11 +380,21 @@ export default function ContainerDetailPage() {
           <TerminalPanel
             containerId={containerId}
             workerId={container.workerId}
-            className="h-80"
-            onFullscreen={() => router.push(`/terminal/${containerId}?worker=${container.workerId}`)}
+            className="min-h-80 flex-1"
+            onFullscreen={() => setShowFullscreenDialog(true)}
           />
         )}
       </div>
+
+      {/* Fullscreen confirmation dialog */}
+      <TerminalSessionDialog
+        open={showFullscreenDialog}
+        onConfirm={() => {
+          setShowFullscreenDialog(false);
+          router.push(`/terminal/${containerId}?worker=${container.workerId}`);
+        }}
+        onCancel={() => setShowFullscreenDialog(false)}
+      />
     </AppShell>
   );
 }

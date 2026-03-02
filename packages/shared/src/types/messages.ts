@@ -24,6 +24,8 @@ export const WorkerHeartbeatMessageSchema = z.object({
   type: z.literal('worker.heartbeat'),
   cpuUsage: z.number().nonnegative(),
   memoryFree: z.number().nonnegative(),
+  diskTotal: z.number().nonnegative().optional(),
+  diskFree: z.number().nonnegative().optional(),
   containersRunning: z.number().int().nonnegative(),
 });
 
@@ -39,15 +41,36 @@ export const ContainerCreatedMessageSchema = z.object({
 
 export type ContainerCreatedMessage = z.infer<typeof ContainerCreatedMessageSchema>;
 
+// --- container.started ---
+
+export const ContainerStartedMessageSchema = z.object({
+  type: z.literal('container.started'),
+  requestId: z.string().min(1),
+  container: ContainerInfoSchema,
+});
+
+export type ContainerStartedMessage = z.infer<typeof ContainerStartedMessageSchema>;
+
 // --- container.stopped ---
 
 export const ContainerStoppedMessageSchema = z.object({
   type: z.literal('container.stopped'),
   requestId: z.string().min(1),
   containerId: z.string().min(1),
+  container: ContainerInfoSchema.optional(),
 });
 
 export type ContainerStoppedMessage = z.infer<typeof ContainerStoppedMessageSchema>;
+
+// --- container.removed ---
+
+export const ContainerRemovedMessageSchema = z.object({
+  type: z.literal('container.removed'),
+  requestId: z.string().min(1),
+  containerId: z.string().min(1),
+});
+
+export type ContainerRemovedMessage = z.infer<typeof ContainerRemovedMessageSchema>;
 
 // --- container.list.response ---
 
@@ -99,18 +122,52 @@ export const TerminalClosedMessageSchema = z.object({
 
 export type TerminalClosedMessage = z.infer<typeof TerminalClosedMessageSchema>;
 
+// --- Error responses ---
+
+const workerErrorBase = {
+  requestId: z.string().min(1),
+  error: z.string(),
+  containerId: z.string().optional(),
+};
+
+export const ContainerCreateErrorSchema = z.object({ type: z.literal('container.create.error'), ...workerErrorBase });
+export const ContainerStartErrorSchema = z.object({ type: z.literal('container.start.error'), ...workerErrorBase });
+export const ContainerStopErrorSchema = z.object({ type: z.literal('container.stop.error'), ...workerErrorBase });
+export const ContainerRemoveErrorSchema = z.object({ type: z.literal('container.remove.error'), ...workerErrorBase });
+export const ContainerListErrorSchema = z.object({ type: z.literal('container.list.error'), ...workerErrorBase });
+export const ContainerListAllErrorSchema = z.object({ type: z.literal('container.list-all.error'), ...workerErrorBase });
+export const TerminalOpenErrorSchema = z.object({ type: z.literal('terminal.open.error'), ...workerErrorBase });
+
+export type WorkerErrorMessage =
+  | z.infer<typeof ContainerCreateErrorSchema>
+  | z.infer<typeof ContainerStartErrorSchema>
+  | z.infer<typeof ContainerStopErrorSchema>
+  | z.infer<typeof ContainerRemoveErrorSchema>
+  | z.infer<typeof ContainerListErrorSchema>
+  | z.infer<typeof ContainerListAllErrorSchema>
+  | z.infer<typeof TerminalOpenErrorSchema>;
+
 // --- Worker Message (discriminated union) ---
 
 export const WorkerMessageSchema = z.discriminatedUnion('type', [
   WorkerRegisterMessageSchema,
   WorkerHeartbeatMessageSchema,
   ContainerCreatedMessageSchema,
+  ContainerStartedMessageSchema,
   ContainerStoppedMessageSchema,
+  ContainerRemovedMessageSchema,
   ContainerListResponseMessageSchema,
   ContainerListAllResponseMessageSchema,
   TerminalOpenedMessageSchema,
   TerminalOutputMessageSchema,
   TerminalClosedMessageSchema,
+  ContainerCreateErrorSchema,
+  ContainerStartErrorSchema,
+  ContainerStopErrorSchema,
+  ContainerRemoveErrorSchema,
+  ContainerListErrorSchema,
+  ContainerListAllErrorSchema,
+  TerminalOpenErrorSchema,
 ]);
 
 export type WorkerMessage = z.infer<typeof WorkerMessageSchema>;
@@ -138,6 +195,16 @@ export const ContainerCreateMessageSchema = z.object({
 
 export type ContainerCreateMessage = z.infer<typeof ContainerCreateMessageSchema>;
 
+// --- container.start ---
+
+export const ContainerStartMessageSchema = z.object({
+  type: z.literal('container.start'),
+  requestId: z.string().min(1),
+  containerId: z.string().min(1),
+});
+
+export type ContainerStartMessage = z.infer<typeof ContainerStartMessageSchema>;
+
 // --- container.stop ---
 
 export const ContainerStopMessageSchema = z.object({
@@ -147,6 +214,16 @@ export const ContainerStopMessageSchema = z.object({
 });
 
 export type ContainerStopMessage = z.infer<typeof ContainerStopMessageSchema>;
+
+// --- container.remove ---
+
+export const ContainerRemoveMessageSchema = z.object({
+  type: z.literal('container.remove'),
+  requestId: z.string().min(1),
+  containerId: z.string().min(1),
+});
+
+export type ContainerRemoveMessage = z.infer<typeof ContainerRemoveMessageSchema>;
 
 // --- container.list ---
 
@@ -213,7 +290,9 @@ export type TerminalCloseMessage = z.infer<typeof TerminalCloseMessageSchema>;
 export const OrchestratorMessageSchema = z.discriminatedUnion('type', [
   WorkerAcceptedMessageSchema,
   ContainerCreateMessageSchema,
+  ContainerStartMessageSchema,
   ContainerStopMessageSchema,
+  ContainerRemoveMessageSchema,
   ContainerListMessageSchema,
   ContainerListAllMessageSchema,
   TerminalOpenMessageSchema,

@@ -5,6 +5,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 interface UseTerminalOptions {
   containerId: string;
   workerId: string;
+  transparent?: boolean;
   onConnected?: () => void;
   onDisconnected?: () => void;
   onError?: (error: string) => void;
@@ -47,7 +48,7 @@ export function useTerminal(
   terminalRef: React.RefObject<HTMLDivElement | null>,
   options: UseTerminalOptions
 ): UseTerminalReturn {
-  const { containerId, workerId, onConnected, onDisconnected, onError } = options;
+  const { containerId, workerId, transparent, onConnected, onDisconnected, onError } = options;
 
   const [isConnected, setIsConnected] = useState(false);
 
@@ -56,6 +57,8 @@ export function useTerminal(
   const wsRef = useRef<WebSocket | null>(null);
   const mountedRef = useRef(true);
   const sessionReadyRef = useRef(false);
+  // Generation counter to prevent stale connect() calls from proceeding
+  const connectGenRef = useRef(0);
 
   // Store latest callbacks in refs to avoid re-triggering effects
   const onConnectedRef = useRef(onConnected);
@@ -92,21 +95,32 @@ export function useTerminal(
     // Clean up any existing instance
     cleanup();
 
+    // Increment generation so any prior in-flight connect() calls abort
+    const gen = ++connectGenRef.current;
+
     // Dynamically import xterm.js modules (they access the DOM)
     // CSS is imported globally via globals.css
+    // Also wait for the Nerd Font to load so terminal renders glyphs correctly
     const [{ Terminal }, { FitAddon }] = await Promise.all([
       import('@xterm/xterm'),
       import('@xterm/addon-fit'),
+      document.fonts.ready,
     ]);
 
-    if (!mountedRef.current) return;
+    // Abort if unmounted or a newer connect() was started while we awaited
+    if (!mountedRef.current || gen !== connectGenRef.current) return;
 
     // Create terminal instance
+    const theme = transparent
+      ? { ...THEME, background: 'rgba(30, 30, 30, 0.85)' }
+      : THEME;
+
     const terminal = new Terminal({
-      theme: THEME,
-      fontFamily: 'JetBrains Mono, monospace',
+      theme,
+      fontFamily: "'JetBrainsMono Nerd Font', 'JetBrains Mono', monospace",
       fontSize: 14,
       cursorBlink: true,
+      allowTransparency: !!transparent,
       allowProposedApi: true,
     });
 
@@ -155,9 +169,14 @@ export function useTerminal(
           }
 
           if (msg.type === 'terminal.output') {
-            // Data from the server is base64-encoded
-            const decoded = atob(msg.data);
-            terminal.write(decoded);
+            // Data from the server is base64-encoded raw bytes.
+            // Decode to Uint8Array so xterm.js handles UTF-8 correctly.
+            const binary = atob(msg.data);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            terminal.write(bytes);
             return;
           }
 
@@ -230,7 +249,7 @@ export function useTerminal(
       window.removeEventListener('resize', handleResize);
       originalDispose();
     };
-  }, [containerId, workerId, terminalRef, cleanup]);
+  }, [containerId, workerId, transparent, terminalRef, cleanup]);
 
   const disconnect = useCallback(() => {
     cleanup();

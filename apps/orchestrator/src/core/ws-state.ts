@@ -42,6 +42,15 @@ class WSState {
       pending.resolve(data);
     }
   }
+
+  rejectRequest(requestId: string, error: string): void {
+    const pending = this.pendingRequests.get(requestId);
+    if (pending) {
+      clearTimeout(pending.timer);
+      this.pendingRequests.delete(requestId);
+      pending.reject(new Error(error));
+    }
+  }
 }
 
 const g = globalThis as unknown as { __wsState?: WSState };

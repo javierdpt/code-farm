@@ -21,12 +21,21 @@ class WorkerRegistry {
 
   updateHeartbeat(
     workerId: string,
-    stats: { cpuUsage?: number; memoryFree: number; containersRunning: number },
+    stats: {
+      cpuUsage?: number;
+      memoryFree: number;
+      diskTotal?: number;
+      diskFree?: number;
+      containersRunning: number;
+    },
   ): void {
     const worker = this.workers.get(workerId);
     if (!worker) return;
 
+    if (stats.cpuUsage !== undefined) worker.cpuUsage = stats.cpuUsage;
     worker.memoryFree = stats.memoryFree;
+    if (stats.diskTotal !== undefined) worker.diskTotal = stats.diskTotal;
+    if (stats.diskFree !== undefined) worker.diskFree = stats.diskFree;
     worker.containersRunning = stats.containersRunning;
     worker.lastHeartbeat = new Date();
     worker.status = 'online';

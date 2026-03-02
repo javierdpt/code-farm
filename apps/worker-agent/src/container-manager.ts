@@ -1,7 +1,7 @@
 import { execFile as execFileCb } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomBytes } from 'node:crypto';
-import type { ContainerInfo, ContainerCreateRequest } from '@code-farm/shared';
+import type { ContainerInfo, ContainerCreateRequest, ContainerResources } from '@code-farm/shared';
 import { CONTAINER_IMAGE, PODMAN_LABEL_PREFIX } from '@code-farm/shared';
 import { config } from './config.js';
 
@@ -83,20 +83,45 @@ export class ContainerManager {
   }
 
   /**
-   * Stop and remove a container.
+   * Start a stopped container.
    */
-  async stop(containerId: string): Promise<void> {
-    console.log(`[WorkerAgent] Stopping container ${containerId.substring(0, 12)}...`);
+  async start(containerId: string): Promise<ContainerInfo> {
+    console.log(`[WorkerAgent] Starting container ${containerId.substring(0, 12)}...`);
+    await execFile('podman', ['start', containerId], {
+      timeout: PODMAN_TIMEOUT,
+    });
+    console.log(`[WorkerAgent] Container started: ${containerId.substring(0, 12)}`);
+    return this.inspect(containerId);
+  }
 
+  /**
+   * Stop a running container without removing it.
+   */
+  async stop(containerId: string): Promise<ContainerInfo> {
+    console.log(`[WorkerAgent] Stopping container ${containerId.substring(0, 12)}...`);
     try {
       await execFile('podman', ['stop', '--time', '10', containerId], {
         timeout: PODMAN_TIMEOUT,
       });
+      console.log(`[WorkerAgent] Container stopped: ${containerId.substring(0, 12)}`);
     } catch (err) {
-      // Container may already be stopped; log but continue to rm
       console.warn(`[WorkerAgent] Stop warning: ${(err as Error).message}`);
     }
+    return this.inspect(containerId);
+  }
 
+  /**
+   * Permanently remove a container. Stops it first if running.
+   */
+  async remove(containerId: string): Promise<void> {
+    console.log(`[WorkerAgent] Removing container ${containerId.substring(0, 12)}...`);
+    try {
+      await execFile('podman', ['stop', '--time', '10', containerId], {
+        timeout: PODMAN_TIMEOUT,
+      });
+    } catch {
+      // Already stopped, continue to rm
+    }
     try {
       await execFile('podman', ['rm', '-f', containerId], {
         timeout: PODMAN_TIMEOUT,
@@ -133,6 +158,7 @@ export class ContainerManager {
   /**
    * List ALL containers on this worker (no label filter).
    * Sets `managed` flag based on presence of the claude-farm label.
+   * Includes batch resource stats for all containers.
    */
   async listAll(): Promise<ContainerInfo[]> {
     const { stdout } = await execFile(
@@ -145,11 +171,25 @@ export class ContainerManager {
     if (!trimmed || trimmed === 'null') return [];
 
     const containers: unknown[] = JSON.parse(trimmed);
-    return containers.map((c) => this.parsePodmanContainer(c));
+    const result = containers.map((c) => this.parsePodmanContainer(c));
+
+    // Batch-fetch stats for all containers (best-effort)
+    try {
+      const statsMap = await this.batchStats();
+      for (const container of result) {
+        const stats = statsMap.get(container.id);
+        if (stats) container.resources = stats;
+      }
+    } catch {
+      // Stats unavailable - return containers without resources
+    }
+
+    return result;
   }
 
   /**
    * Inspect a single container and return its info.
+   * Does NOT fetch resource stats - use inspectWithStats() for that.
    */
   async inspect(containerId: string): Promise<ContainerInfo> {
     const { stdout } = await execFile(
@@ -164,6 +204,22 @@ export class ContainerManager {
     }
 
     return this.parsePodmanInspect(parsed[0]);
+  }
+
+  /**
+   * Inspect a single container and include resource stats (CPU, memory, disk).
+   * Slower than inspect() due to extra podman calls.
+   */
+  async inspectWithStats(containerId: string): Promise<ContainerInfo> {
+    const info = await this.inspect(containerId);
+
+    try {
+      info.resources = await this.stats(containerId);
+    } catch {
+      // Stats unavailable - leave resources undefined
+    }
+
+    return info;
   }
 
   /**
@@ -197,6 +253,177 @@ export class ContainerManager {
     const trimmed = stdout.trim();
     if (!trimmed) return 0;
     return trimmed.split('\n').length;
+  }
+
+  /**
+   * Get resource stats for a container (configured limits + live usage).
+   */
+  async stats(containerId: string): Promise<ContainerResources> {
+    // Get configured limits from inspect
+    const { stdout: inspectOut } = await execFile(
+      'podman',
+      ['inspect', '--format', 'json', containerId],
+      { timeout: PODMAN_TIMEOUT },
+    );
+    const inspectData: unknown[] = JSON.parse(inspectOut.trim());
+    const obj = (inspectData[0] ?? {}) as Record<string, unknown>;
+    const hostConfig = (obj.HostConfig ?? {}) as Record<string, unknown>;
+    const state = (obj.State ?? {}) as Record<string, unknown>;
+
+    const memoryLimit = (hostConfig.Memory ?? 0) as number;
+    const cpuLimit = (hostConfig.NanoCpus ?? 0) as number;
+
+    // Get disk size via podman ps --size
+    let diskUsage = 0;
+    try {
+      const { stdout: psOut } = await execFile(
+        'podman',
+        ['ps', '-a', '--size', '--filter', `id=${containerId}`, '--format', '{{.Size}}'],
+        { timeout: PODMAN_TIMEOUT },
+      );
+      diskUsage = this.parseSizeString(psOut.trim());
+    } catch {
+      // Disk size is best-effort
+    }
+
+    // Get live CPU/memory usage (only for running containers)
+    let memoryUsage = 0;
+    let cpuPercent = 0;
+
+    if ((state.Status as string)?.toLowerCase() === 'running') {
+      try {
+        const { stdout: statsOut } = await execFile(
+          'podman',
+          ['stats', '--no-stream', '--format', 'json', containerId],
+          { timeout: PODMAN_TIMEOUT },
+        );
+        const statsData: unknown[] = JSON.parse(statsOut.trim());
+        if (statsData.length) {
+          const s = statsData[0] as Record<string, unknown>;
+          cpuPercent = parseFloat(String(s.cpu_percent ?? s.CPU ?? '0').replace('%', ''));
+          if (typeof s.mem_usage === 'number') {
+            memoryUsage = s.mem_usage;
+          } else if (typeof s.MemUsage === 'string') {
+            memoryUsage = this.parseSizeString(s.MemUsage.split('/')[0].trim());
+          }
+        }
+      } catch {
+        // Stats unavailable
+      }
+    }
+
+    return { memoryLimit, cpuLimit, diskUsage, memoryUsage, cpuPercent };
+  }
+
+  /**
+   * Batch-fetch resource stats for ALL containers in a single set of podman calls.
+   * Much more efficient than calling stats() per container.
+   */
+  async batchStats(): Promise<Map<string, ContainerResources>> {
+    const result = new Map<string, ContainerResources>();
+
+    // 1. Get disk sizes for all containers via podman ps --size
+    // Size is an object: { rootFsSize: number, rwSize: number }
+    const diskMap = new Map<string, number>();
+    try {
+      const { stdout: psOut } = await execFile(
+        'podman',
+        ['ps', '-a', '--size', '--format', 'json'],
+        { timeout: PODMAN_TIMEOUT },
+      );
+      const psData: unknown[] = JSON.parse(psOut.trim() || '[]');
+      for (const item of psData) {
+        const obj = item as Record<string, unknown>;
+        const id = (obj.Id ?? obj.ID ?? '') as string;
+        const sizeObj = obj.Size as Record<string, unknown> | undefined;
+        const diskUsage = typeof sizeObj === 'object' && sizeObj !== null
+          ? ((sizeObj.rwSize ?? 0) as number)
+          : 0;
+        if (id) diskMap.set(id, diskUsage);
+      }
+    } catch {
+      // Disk stats unavailable
+    }
+
+    // 2. Get live CPU/memory for running containers via podman stats
+    // Note: stats returns truncated IDs (12 chars) in the 'id' field
+    const liveMap = new Map<string, { cpuPercent: number; memoryUsage: number }>();
+    try {
+      const { stdout: statsOut } = await execFile(
+        'podman',
+        ['stats', '--no-stream', '--format', 'json'],
+        { timeout: PODMAN_TIMEOUT },
+      );
+      const statsData: unknown[] = JSON.parse(statsOut.trim() || '[]');
+      for (const item of statsData) {
+        const s = item as Record<string, unknown>;
+        const shortId = (s.id ?? s.ID ?? s.Id ?? '') as string;
+        const cpuPercent = parseFloat(String(s.cpu_percent ?? s.CPU ?? '0').replace('%', ''));
+        let memoryUsage = 0;
+        if (typeof s.mem_usage === 'number') {
+          memoryUsage = s.mem_usage;
+        } else if (typeof s.mem_usage === 'string') {
+          memoryUsage = this.parseSizeString(s.mem_usage.split('/')[0].trim());
+        } else if (typeof s.MemUsage === 'string') {
+          memoryUsage = this.parseSizeString(s.MemUsage.split('/')[0].trim());
+        }
+        if (shortId) liveMap.set(shortId, { cpuPercent, memoryUsage });
+      }
+    } catch {
+      // Live stats unavailable
+    }
+
+    // 3. Merge into results - match live stats by prefix since stats uses short IDs
+    for (const [fullId, diskUsage] of diskMap) {
+      const live = this.findByPrefix(liveMap, fullId);
+      result.set(fullId, {
+        memoryLimit: 0,
+        cpuLimit: 0,
+        diskUsage,
+        memoryUsage: live?.memoryUsage ?? 0,
+        cpuPercent: live?.cpuPercent ?? 0,
+      });
+    }
+
+    // Add any live-only entries (shouldn't happen, but be safe)
+    for (const [shortId, live] of liveMap) {
+      const fullId = this.findFullId(diskMap, shortId);
+      if (fullId && !result.has(fullId)) {
+        result.set(fullId, {
+          memoryLimit: 0,
+          cpuLimit: 0,
+          diskUsage: 0,
+          memoryUsage: live.memoryUsage,
+          cpuPercent: live.cpuPercent,
+        });
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Find a value in a map where the key is a short prefix of the search ID.
+   */
+  private findByPrefix<T>(map: Map<string, T>, fullId: string): T | undefined {
+    // Try exact match first
+    const exact = map.get(fullId);
+    if (exact) return exact;
+    // Try prefix match (stats returns 12-char IDs)
+    for (const [key, value] of map) {
+      if (fullId.startsWith(key) || key.startsWith(fullId)) return value;
+    }
+    return undefined;
+  }
+
+  /**
+   * Find the full ID in a map that matches a short prefix.
+   */
+  private findFullId(map: Map<string, unknown>, shortId: string): string | undefined {
+    for (const key of map.keys()) {
+      if (key.startsWith(shortId)) return key;
+    }
+    return undefined;
   }
 
   // ---------------------------------------------------------------------------
@@ -294,5 +521,21 @@ export class ContainerManager {
       default:
         return 'stopped';
     }
+  }
+
+  /**
+   * Parse a human-readable size string (e.g. "123.4MiB", "1.2 GB") into bytes.
+   */
+  private parseSizeString(str: string): number {
+    const match = str.match(/^([\d.]+)\s*(B|KiB|MiB|GiB|TiB|KB|MB|GB|TB)?/i);
+    if (!match) return 0;
+    const value = parseFloat(match[1]);
+    const unit = (match[2] ?? 'B').toUpperCase();
+    const multipliers: Record<string, number> = {
+      B: 1,
+      KIB: 1024, MIB: 1024 ** 2, GIB: 1024 ** 3, TIB: 1024 ** 4,
+      KB: 1000, MB: 1000 ** 2, GB: 1000 ** 3, TB: 1000 ** 4,
+    };
+    return value * (multipliers[unit] ?? 1);
   }
 }
