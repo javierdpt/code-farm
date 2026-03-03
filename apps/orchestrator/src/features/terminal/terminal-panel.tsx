@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useCallback } from 'react';
-import { useTerminal } from '@/features/terminal/use-terminal';
+import { useTerminal, MAX_RECONNECT_ATTEMPTS } from '@/features/terminal/use-terminal';
 
 interface TerminalPanelProps {
   containerId: string;
@@ -17,10 +17,13 @@ export function TerminalPanel({
   onFullscreen,
 }: TerminalPanelProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, wasConnected, disconnect, reconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
     containerId,
     workerId,
   });
+
+  const isReconnecting = reconnectAttempt > 0 && reconnectAttempt <= MAX_RECONNECT_ATTEMPTS && !isConnected;
+  const isExhausted = reconnectAttempt > MAX_RECONNECT_ATTEMPTS && !isConnected;
 
   const handleReconnect = useCallback(() => {
     reconnect();
@@ -37,9 +40,9 @@ export function TerminalPanel({
           {/* Connection status indicator */}
           <span
             className={`inline-block w-2.5 h-2.5 rounded-full ${
-              isConnected ? 'bg-vsc-success' : 'bg-vsc-error'
+              isConnected ? 'bg-vsc-success' : isReconnecting ? 'bg-vsc-warning animate-pulse' : 'bg-vsc-error'
             }`}
-            title={isConnected ? 'Connected' : 'Disconnected'}
+            title={isConnected ? 'Connected' : isReconnecting ? `Reconnecting (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})` : 'Disconnected'}
           />
           <span className="text-sm text-vsc-text-primary font-medium">Terminal</span>
           <span className="text-xs text-vsc-text-secondary truncate max-w-48">
@@ -93,8 +96,27 @@ export function TerminalPanel({
           style={{ padding: 4 }}
         />
 
-        {/* Disconnected overlay */}
-        {wasConnected && !isConnected && (
+        {/* Reconnecting overlay */}
+        {isReconnecting && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-vsc-bg-primary/90">
+            <div className="mb-4 flex items-center gap-2">
+              <span className="inline-block w-2.5 h-2.5 rounded-full bg-vsc-warning animate-pulse" />
+              <span className="text-sm text-vsc-text-secondary">
+                Reconnecting... (attempt {reconnectAttempt}/{MAX_RECONNECT_ATTEMPTS})
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleReconnect}
+              className="rounded bg-vsc-bg-secondary px-4 py-1.5 text-xs text-vsc-text-secondary border border-vsc-border transition-colors hover:bg-vsc-hover hover:text-vsc-text-primary"
+            >
+              Retry Now
+            </button>
+          </div>
+        )}
+
+        {/* Disconnected overlay (after max attempts exhausted or intentional disconnect) */}
+        {(wasConnected || isExhausted) && !isConnected && !isReconnecting && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-vsc-bg-primary/90">
             <div className="relative mb-4">
               <span

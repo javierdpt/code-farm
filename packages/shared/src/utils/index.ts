@@ -22,6 +22,13 @@ export {
   createTerminalInput,
   createTerminalResize,
   createTerminalClose,
+  createImagesList,
+  createImagesListResponse,
+  createOpsLog,
+  createImageBuild,
+  createImageBuildOutput,
+  createImageBuildDone,
+  createImageBuildError,
 } from './message-factory.js';
 
 export {

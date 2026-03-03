@@ -14,9 +14,14 @@ interface UseTerminalOptions {
 interface UseTerminalReturn {
   isConnected: boolean;
   wasConnected: boolean;
+  reconnectAttempt: number;
   disconnect: () => void;
   reconnect: () => void;
 }
+
+export const MAX_RECONNECT_ATTEMPTS = 10;
+const RECONNECT_BASE_DELAY = 1000;
+const RECONNECT_MAX_DELAY = 15000;
 
 const THEME = {
   background: '#1e1e1e',
@@ -53,6 +58,7 @@ export function useTerminal(
 
   const [isConnected, setIsConnected] = useState(false);
   const [wasConnected, setWasConnected] = useState(false);
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
   const terminalInstanceRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -61,6 +67,10 @@ export function useTerminal(
   const sessionReadyRef = useRef(false);
   // Generation counter to prevent stale connect() calls from proceeding
   const connectGenRef = useRef(0);
+  // Auto-reconnect state
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const intentionalRef = useRef(false);
 
   // Store latest callbacks in refs to avoid re-triggering effects
   const onConnectedRef = useRef(onConnected);
@@ -165,6 +175,9 @@ export function useTerminal(
 
           if (msg.type === 'terminal.opened') {
             sessionReadyRef.current = true;
+            reconnectAttemptRef.current = 0;
+            setReconnectAttempt(0);
+            intentionalRef.current = false;
             setIsConnected(true);
             setWasConnected(true);
             onConnectedRef.current?.();
@@ -206,6 +219,17 @@ export function useTerminal(
       sessionReadyRef.current = false;
       setIsConnected(false);
       onDisconnectedRef.current?.();
+
+      // Auto-reconnect with exponential backoff
+      if (!intentionalRef.current && mountedRef.current) {
+        const attempt = reconnectAttemptRef.current + 1;
+        reconnectAttemptRef.current = attempt;
+        setReconnectAttempt(attempt);
+        if (attempt <= MAX_RECONNECT_ATTEMPTS) {
+          const delay = Math.min(RECONNECT_BASE_DELAY * Math.pow(2, attempt - 1), RECONNECT_MAX_DELAY);
+          reconnectTimerRef.current = setTimeout(() => connect(), delay);
+        }
+      }
     };
 
     ws.onerror = () => {
@@ -255,10 +279,24 @@ export function useTerminal(
   }, [containerId, workerId, transparent, terminalRef, cleanup]);
 
   const disconnect = useCallback(() => {
+    intentionalRef.current = true;
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    reconnectAttemptRef.current = 0;
+    setReconnectAttempt(0);
     cleanup();
   }, [cleanup]);
 
   const reconnect = useCallback(() => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    reconnectAttemptRef.current = 0;
+    setReconnectAttempt(0);
+    intentionalRef.current = false;
     connect();
   }, [connect]);
 
@@ -269,9 +307,13 @@ export function useTerminal(
 
     return () => {
       mountedRef.current = false;
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
       cleanup();
     };
   }, [connect, cleanup]);
 
-  return { isConnected, wasConnected, disconnect, reconnect };
+  return { isConnected, wasConnected, reconnectAttempt, disconnect, reconnect };
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import type { WorkerInfo } from '@/core/types';
 import { relativeTime, formatBytes } from '@/core/format';
 
@@ -21,11 +22,16 @@ const platformIcons: Record<string, string> = {
 };
 
 export function WorkerCard({ worker }: WorkerCardProps) {
+  const router = useRouter();
   const status = statusConfig[worker.status] ?? statusConfig.offline;
   const platformLabel = platformIcons[worker.platform] ?? worker.platform;
 
   return (
-    <div className="rounded border border-vsc-border bg-vsc-bg-secondary p-4 transition-colors hover:border-vsc-accent-blue">
+    <button
+      type="button"
+      onClick={() => router.push(`/workers/${worker.id}`)}
+      className="cursor-pointer rounded border border-vsc-border bg-vsc-bg-secondary p-4 text-left transition-colors hover:border-vsc-accent-blue focus:outline-none focus:ring-1 focus:ring-vsc-accent-blue"
+    >
       {/* Header: Name + Status */}
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-semibold text-vsc-text-primary">{worker.name}</span>
@@ -70,6 +76,6 @@ export function WorkerCard({ worker }: WorkerCardProps) {
           <span className="text-vsc-text-primary">{relativeTime(worker.lastHeartbeat)}</span>
         </div>
       </div>
-    </div>
+    </button>
   );
 }

@@ -54,6 +54,7 @@ export const ContainerCreateRequestSchema = z.object({
   workerName: z.string().min(1).optional(),
   image: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
+  memoryMb: z.number().int().positive().optional(),
 });
 
 export type ContainerCreateRequest = z.infer<typeof ContainerCreateRequestSchema>;

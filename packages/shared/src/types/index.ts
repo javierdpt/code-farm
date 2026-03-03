@@ -51,6 +51,10 @@ export {
   TerminalOpenedMessageSchema,
   TerminalOutputMessageSchema,
   TerminalClosedMessageSchema,
+  OpsLogMessageSchema,
+  ImageBuildOutputMessageSchema,
+  ImageBuildDoneMessageSchema,
+  ImageBuildErrorMessageSchema,
   // Error message schemas
   ContainerCreateErrorSchema,
   ContainerStartErrorSchema,
@@ -59,6 +63,9 @@ export {
   ContainerListErrorSchema,
   ContainerListAllErrorSchema,
   TerminalOpenErrorSchema,
+  ImagesListErrorSchema,
+  ImageInfoSchema,
+  ImagesListResponseMessageSchema,
   WorkerMessageSchema,
   // Worker-to-Orchestrator message types
   type WorkerRegisterMessage,
@@ -72,7 +79,13 @@ export {
   type TerminalOpenedMessage,
   type TerminalOutputMessage,
   type TerminalClosedMessage,
+  type OpsLogMessage,
+  type ImageBuildOutputMessage,
+  type ImageBuildDoneMessage,
+  type ImageBuildErrorMessage,
   type WorkerErrorMessage,
+  type ImageInfo,
+  type ImagesListResponseMessage,
   type WorkerMessage,
   // Orchestrator-to-Worker message schemas
   WorkerAcceptedMessageSchema,
@@ -86,6 +99,8 @@ export {
   TerminalInputMessageSchema,
   TerminalResizeMessageSchema,
   TerminalCloseMessageSchema,
+  ImagesListMessageSchema,
+  ImageBuildMessageSchema,
   OrchestratorMessageSchema,
   // Orchestrator-to-Worker message types
   type WorkerAcceptedMessage,
@@ -99,6 +114,8 @@ export {
   type TerminalInputMessage,
   type TerminalResizeMessage,
   type TerminalCloseMessage,
+  type ImagesListMessage,
+  type ImageBuildMessage,
   type OrchestratorMessage,
   // Browser-to-Orchestrator message schemas and types
   TerminalBrowserResizeMessageSchema,

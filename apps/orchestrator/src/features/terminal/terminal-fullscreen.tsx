@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { useTerminal } from '@/features/terminal/use-terminal';
+import { useTerminal, MAX_RECONNECT_ATTEMPTS } from '@/features/terminal/use-terminal';
 import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
 
 interface TerminalFullscreenProps {
@@ -26,11 +26,14 @@ export function TerminalFullscreen({
   containerCount = 0,
 }: TerminalFullscreenProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, wasConnected, disconnect, reconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
     containerId,
     workerId,
     transparent: true,
   });
+
+  const isReconnecting = reconnectAttempt > 0 && reconnectAttempt <= MAX_RECONNECT_ATTEMPTS && !isConnected;
+  const isExhausted = reconnectAttempt > MAX_RECONNECT_ATTEMPTS && !isConnected;
 
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -131,11 +134,11 @@ export function TerminalFullscreen({
             <div className="flex items-center gap-1.5">
               <span
                 className={`inline-block w-2 h-2 rounded-full ${
-                  isConnected ? 'bg-vsc-success' : 'bg-vsc-error'
+                  isConnected ? 'bg-vsc-success' : isReconnecting ? 'bg-vsc-warning animate-pulse' : 'bg-vsc-error'
                 }`}
               />
               <span className="text-xs text-vsc-text-secondary">
-                {isConnected ? 'Connected' : 'Disconnected'}
+                {isConnected ? 'Connected' : isReconnecting ? `Reconnecting (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})` : 'Disconnected'}
               </span>
             </div>
           </div>
@@ -172,8 +175,27 @@ export function TerminalFullscreen({
           style={{ padding: 4 }}
         />
 
-        {/* Disconnected overlay */}
-        {wasConnected && !isConnected && (
+        {/* Reconnecting overlay */}
+        {isReconnecting && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
+            <div className="mb-5 flex items-center gap-3">
+              <span className="inline-block w-3 h-3 rounded-full bg-vsc-warning animate-pulse" />
+              <span className="text-base text-vsc-text-secondary">
+                Reconnecting... (attempt {reconnectAttempt}/{MAX_RECONNECT_ATTEMPTS})
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={reconnect}
+              className="rounded bg-vsc-bg-secondary px-6 py-2 text-sm text-vsc-text-secondary border border-vsc-border transition-colors hover:bg-vsc-hover hover:text-vsc-text-primary"
+            >
+              Retry Now
+            </button>
+          </div>
+        )}
+
+        {/* Disconnected overlay (after max attempts exhausted or intentional disconnect) */}
+        {(wasConnected || isExhausted) && !isConnected && !isReconnecting && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
             <div className="relative mb-6">
               <span
@@ -235,10 +257,10 @@ export function TerminalFullscreen({
           <div className="flex items-center gap-1.5">
             <span
               className={`inline-block h-1.5 w-1.5 rounded-full ${
-                isConnected ? 'bg-green-300' : 'bg-red-300'
+                isConnected ? 'bg-green-300' : isReconnecting ? 'bg-yellow-300 animate-pulse' : 'bg-red-300'
               }`}
             />
-            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+            <span>{isConnected ? 'Connected' : isReconnecting ? 'Reconnecting...' : 'Disconnected'}</span>
           </div>
           <div className="flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">

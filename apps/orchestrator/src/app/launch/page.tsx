@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppShell } from '@/layout/app-shell';
 import { TicketInput } from '@/features/launch/ticket-input';
-import { LaunchConfig } from '@/features/launch/launch-config';
+import { LaunchConfig, type ImageOption } from '@/features/launch/launch-config';
 import { LaunchProgress, type LaunchStep } from '@/features/launch/launch-progress';
 import type { WorkerInfo } from '@/core/types';
 
@@ -27,8 +27,11 @@ export default function LaunchPage() {
   const [detecting, setDetecting] = useState(false);
   const [selectedWorker, setSelectedWorker] = useState('');
   const [extraInstructions, setExtraInstructions] = useState('');
+  const [image, setImage] = useState('');
+  const [memoryGb, setMemoryGb] = useState(4);
   const [containerName, setContainerName] = useState('');
   const [workers, setWorkers] = useState<WorkerInfo[]>([]);
+  const [images, setImages] = useState<ImageOption[]>([]);
   const [phase, setPhase] = useState<LaunchPhase>('idle');
   const [steps, setSteps] = useState<LaunchStep[]>([]);
   const [containerId, setContainerId] = useState<string | undefined>();
@@ -52,6 +55,24 @@ export default function LaunchPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch images list
+  useEffect(() => {
+    async function fetchImages() {
+      try {
+        const res = await fetch('/api/images');
+        if (res.ok) {
+          const data = await res.json();
+          setImages(data.images ?? []);
+        }
+      } catch {
+        // ignore
+      }
+    }
+    fetchImages();
+    const interval = setInterval(fetchImages, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleDetect = useCallback(() => {
     setDetecting(true);
     // Client-side detection from URL pattern
@@ -68,6 +89,8 @@ export default function LaunchPage() {
     setError(undefined);
     setContainerId(undefined);
 
+    const memoryMb = memoryGb * 1024;
+
     if (launchMode === 'empty') {
       const initialSteps: LaunchStep[] = [
         { label: 'Creating container...', status: 'active' },
@@ -82,6 +105,8 @@ export default function LaunchPage() {
           body: JSON.stringify({
             name: containerName.trim(),
             ...(selectedWorker ? { workerName: selectedWorker } : {}),
+            ...(image ? { image } : {}),
+            memoryMb,
           }),
         });
 
@@ -130,6 +155,8 @@ export default function LaunchPage() {
             ticketUrl,
             ...(selectedWorker ? { workerName: selectedWorker } : {}),
             ...(extraInstructions ? { extraInstructions } : {}),
+            ...(image ? { image } : {}),
+            memoryMb,
           }),
         });
 
@@ -192,7 +219,7 @@ export default function LaunchPage() {
         setPhase('error');
       }
     }
-  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions]);
+  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions, image, memoryGb]);
 
   const isLaunching = phase === 'launching';
   const canLaunch =
@@ -237,72 +264,47 @@ export default function LaunchPage() {
         </div>
 
         {launchMode === 'issue' ? (
-          <>
-            {/* Ticket URL Input */}
-            <TicketInput
-              value={ticketUrl}
-              onChange={setTicketUrl}
-              detectedProvider={detectedProvider}
-              onDetect={handleDetect}
-              detecting={detecting}
-              disabled={isLaunching}
-            />
-
-            {/* Advanced Options */}
-            <LaunchConfig
-              workers={workers}
-              selectedWorker={selectedWorker}
-              onWorkerChange={setSelectedWorker}
-              extraInstructions={extraInstructions}
-              onExtraInstructionsChange={setExtraInstructions}
-              disabled={isLaunching}
-            />
-          </>
+          /* Ticket URL Input */
+          <TicketInput
+            value={ticketUrl}
+            onChange={setTicketUrl}
+            detectedProvider={detectedProvider}
+            onDetect={handleDetect}
+            detecting={detecting}
+            disabled={isLaunching}
+          />
         ) : (
-          <div className="space-y-4">
-            {/* Container Name */}
-            <div className="space-y-2">
-              <label htmlFor="container-name" className="block text-sm font-medium text-vsc-text-primary">
-                Container Name
-              </label>
-              <input
-                id="container-name"
-                type="text"
-                value={containerName}
-                onChange={(e) => setContainerName(e.target.value)}
-                disabled={isLaunching}
-                placeholder="my-dev-container"
-                className="w-full rounded border border-vsc-border bg-vsc-bg-input px-3 py-2 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
-              />
-            </div>
-
-            {/* Worker Selector */}
-            <div className="space-y-1.5">
-              <label htmlFor="empty-worker-select" className="block text-xs font-medium text-vsc-text-primary">
-                Target Worker
-              </label>
-              <select
-                id="empty-worker-select"
-                value={selectedWorker}
-                onChange={(e) => setSelectedWorker(e.target.value)}
-                disabled={isLaunching}
-                className="w-full rounded border border-vsc-border bg-vsc-bg-input px-3 py-1.5 text-sm text-vsc-text-primary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
-              >
-                <option value="">Auto (least loaded)</option>
-                {workers.filter((w) => w.status === 'online').map((worker) => (
-                  <option key={worker.id} value={worker.name}>
-                    {worker.name} ({worker.containersRunning} containers)
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-vsc-text-secondary">
-                {workers.filter((w) => w.status === 'online').length === 0
-                  ? 'No workers online. A worker must be connected to launch.'
-                  : `${workers.filter((w) => w.status === 'online').length} worker${workers.filter((w) => w.status === 'online').length !== 1 ? 's' : ''} available`}
-              </p>
-            </div>
+          /* Container Name */
+          <div className="space-y-2">
+            <label htmlFor="container-name" className="block text-sm font-medium text-vsc-text-primary">
+              Container Name
+            </label>
+            <input
+              id="container-name"
+              type="text"
+              value={containerName}
+              onChange={(e) => setContainerName(e.target.value)}
+              disabled={isLaunching}
+              placeholder="my-dev-container"
+              className="w-full rounded border border-vsc-border bg-vsc-bg-input px-3 py-2 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
+            />
           </div>
         )}
+
+        {/* Advanced Options — shared between both modes */}
+        <LaunchConfig
+          workers={workers}
+          selectedWorker={selectedWorker}
+          onWorkerChange={setSelectedWorker}
+          image={image}
+          onImageChange={setImage}
+          images={images}
+          memoryGb={memoryGb}
+          onMemoryGbChange={setMemoryGb}
+          extraInstructions={extraInstructions}
+          onExtraInstructionsChange={setExtraInstructions}
+          disabled={isLaunching}
+        />
 
         {/* Launch Button */}
         <button

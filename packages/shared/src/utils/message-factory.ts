@@ -21,6 +21,14 @@ import type {
   TerminalInputMessage,
   TerminalResizeMessage,
   TerminalCloseMessage,
+  ImagesListMessage,
+  ImagesListResponseMessage,
+  ImageInfo,
+  OpsLogMessage,
+  ImageBuildMessage,
+  ImageBuildOutputMessage,
+  ImageBuildDoneMessage,
+  ImageBuildErrorMessage,
 } from '../types/messages.js';
 import type { ContainerCreateRequest, ContainerInfo } from '../types/container.js';
 
@@ -150,6 +158,55 @@ export function createTerminalClosed(
   };
 }
 
+export function createOpsLog(
+  level: 'info' | 'warn' | 'error',
+  message: string,
+  command?: string,
+): OpsLogMessage {
+  return {
+    type: 'ops.log',
+    timestamp: new Date().toISOString(),
+    level,
+    message,
+    ...(command ? { command } : {}),
+  };
+}
+
+export function createImageBuildOutput(
+  requestId: string,
+  data: string,
+): ImageBuildOutputMessage {
+  return {
+    type: 'image.build.output',
+    requestId,
+    data,
+  };
+}
+
+export function createImageBuildDone(
+  requestId: string,
+  imageId: string,
+  tag: string,
+): ImageBuildDoneMessage {
+  return {
+    type: 'image.build.done',
+    requestId,
+    imageId,
+    tag,
+  };
+}
+
+export function createImageBuildError(
+  requestId: string,
+  error: string,
+): ImageBuildErrorMessage {
+  return {
+    type: 'image.build.error',
+    requestId,
+    error,
+  };
+}
+
 // ============================================================
 // Orchestrator-to-Worker message factories
 // ============================================================
@@ -236,6 +293,19 @@ export function createContainerListAllResponse(
   };
 }
 
+export function createImageBuild(
+  requestId: string,
+  dockerfile: string,
+  tag: string,
+): ImageBuildMessage {
+  return {
+    type: 'image.build',
+    requestId,
+    dockerfile,
+    tag,
+  };
+}
+
 export function createTerminalOpen(
   requestId: string,
   containerId: string,
@@ -281,5 +351,25 @@ export function createTerminalClose(
   return {
     type: 'terminal.close',
     sessionId,
+  };
+}
+
+export function createImagesList(
+  requestId: string,
+): ImagesListMessage {
+  return {
+    type: 'images.list',
+    requestId,
+  };
+}
+
+export function createImagesListResponse(
+  requestId: string,
+  images: ImageInfo[],
+): ImagesListResponseMessage {
+  return {
+    type: 'images.list.response',
+    requestId,
+    images,
   };
 }

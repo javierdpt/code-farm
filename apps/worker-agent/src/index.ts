@@ -15,12 +15,19 @@ import type {
   ContainerRemovedMessage,
   ContainerListResponseMessage,
   ContainerListAllResponseMessage,
+  ImagesListResponseMessage,
   TerminalOpenedMessage,
   TerminalOutputMessage,
   TerminalClosedMessage,
   WorkerMessage,
 } from '@code-farm/shared';
-import { OrchestratorMessageSchema } from '@code-farm/shared';
+import {
+  OrchestratorMessageSchema,
+  createOpsLog,
+  createImageBuildOutput,
+  createImageBuildDone,
+  createImageBuildError,
+} from '@code-farm/shared';
 
 // ---------------------------------------------------------------------------
 // State
@@ -30,6 +37,11 @@ let workerId: string | null = null;
 
 const containerManager = new ContainerManager();
 const terminalManager = new TerminalManager();
+
+// Wire up ops log callback to send ops.log messages to orchestrator
+containerManager.setOpsLogCallback((level, message, command) => {
+  wsClient.send(createOpsLog(level, message, command));
+});
 
 // ---------------------------------------------------------------------------
 // WebSocket Client
@@ -246,6 +258,39 @@ async function handleMessage(raw: unknown): Promise<void> {
           error: (err as Error).message,
         });
       }
+      break;
+    }
+
+    case 'images.list': {
+      try {
+        const images = await containerManager.listImages();
+        const response: ImagesListResponseMessage = {
+          type: 'images.list.response',
+          requestId: msg.requestId,
+          images,
+        };
+        wsClient.send(response);
+      } catch (err) {
+        console.error('[WorkerAgent] images.list failed:', err);
+        wsClient.send({
+          type: 'images.list.error',
+          requestId: msg.requestId,
+          error: (err as Error).message,
+        });
+      }
+      break;
+    }
+
+    // -- Image build ---
+    case 'image.build': {
+      const { requestId, dockerfile, tag } = msg;
+      containerManager.buildImage(
+        dockerfile,
+        tag,
+        (data) => wsClient.send(createImageBuildOutput(requestId, data)),
+        (imageId) => wsClient.send(createImageBuildDone(requestId, imageId, tag)),
+        (error) => wsClient.send(createImageBuildError(requestId, error)),
+      );
       break;
     }
 

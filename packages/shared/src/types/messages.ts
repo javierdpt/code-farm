@@ -122,6 +122,68 @@ export const TerminalClosedMessageSchema = z.object({
 
 export type TerminalClosedMessage = z.infer<typeof TerminalClosedMessageSchema>;
 
+// --- ops.log ---
+
+export const OpsLogMessageSchema = z.object({
+  type: z.literal('ops.log'),
+  timestamp: z.string(),
+  level: z.enum(['info', 'warn', 'error']),
+  message: z.string(),
+  command: z.string().optional(),
+});
+
+export type OpsLogMessage = z.infer<typeof OpsLogMessageSchema>;
+
+// --- image.build.output ---
+
+export const ImageBuildOutputMessageSchema = z.object({
+  type: z.literal('image.build.output'),
+  requestId: z.string(),
+  data: z.string(),
+});
+
+export type ImageBuildOutputMessage = z.infer<typeof ImageBuildOutputMessageSchema>;
+
+// --- image.build.done ---
+
+export const ImageBuildDoneMessageSchema = z.object({
+  type: z.literal('image.build.done'),
+  requestId: z.string(),
+  imageId: z.string(),
+  tag: z.string(),
+});
+
+export type ImageBuildDoneMessage = z.infer<typeof ImageBuildDoneMessageSchema>;
+
+// --- image.build.error ---
+
+export const ImageBuildErrorMessageSchema = z.object({
+  type: z.literal('image.build.error'),
+  requestId: z.string(),
+  error: z.string(),
+});
+
+export type ImageBuildErrorMessage = z.infer<typeof ImageBuildErrorMessageSchema>;
+
+// --- images.list.response ---
+
+export const ImageInfoSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  tag: z.string(),
+  size: z.number(),
+});
+
+export type ImageInfo = z.infer<typeof ImageInfoSchema>;
+
+export const ImagesListResponseMessageSchema = z.object({
+  type: z.literal('images.list.response'),
+  requestId: z.string().min(1),
+  images: z.array(ImageInfoSchema),
+});
+
+export type ImagesListResponseMessage = z.infer<typeof ImagesListResponseMessageSchema>;
+
 // --- Error responses ---
 
 const workerErrorBase = {
@@ -137,6 +199,7 @@ export const ContainerRemoveErrorSchema = z.object({ type: z.literal('container.
 export const ContainerListErrorSchema = z.object({ type: z.literal('container.list.error'), ...workerErrorBase });
 export const ContainerListAllErrorSchema = z.object({ type: z.literal('container.list-all.error'), ...workerErrorBase });
 export const TerminalOpenErrorSchema = z.object({ type: z.literal('terminal.open.error'), ...workerErrorBase });
+export const ImagesListErrorSchema = z.object({ type: z.literal('images.list.error'), ...workerErrorBase });
 
 export type WorkerErrorMessage =
   | z.infer<typeof ContainerCreateErrorSchema>
@@ -145,7 +208,8 @@ export type WorkerErrorMessage =
   | z.infer<typeof ContainerRemoveErrorSchema>
   | z.infer<typeof ContainerListErrorSchema>
   | z.infer<typeof ContainerListAllErrorSchema>
-  | z.infer<typeof TerminalOpenErrorSchema>;
+  | z.infer<typeof TerminalOpenErrorSchema>
+  | z.infer<typeof ImagesListErrorSchema>;
 
 // --- Worker Message (discriminated union) ---
 
@@ -161,6 +225,10 @@ export const WorkerMessageSchema = z.discriminatedUnion('type', [
   TerminalOpenedMessageSchema,
   TerminalOutputMessageSchema,
   TerminalClosedMessageSchema,
+  OpsLogMessageSchema,
+  ImageBuildOutputMessageSchema,
+  ImageBuildDoneMessageSchema,
+  ImageBuildErrorMessageSchema,
   ContainerCreateErrorSchema,
   ContainerStartErrorSchema,
   ContainerStopErrorSchema,
@@ -168,6 +236,8 @@ export const WorkerMessageSchema = z.discriminatedUnion('type', [
   ContainerListErrorSchema,
   ContainerListAllErrorSchema,
   TerminalOpenErrorSchema,
+  ImagesListResponseMessageSchema,
+  ImagesListErrorSchema,
 ]);
 
 export type WorkerMessage = z.infer<typeof WorkerMessageSchema>;
@@ -243,6 +313,26 @@ export const ContainerListAllMessageSchema = z.object({
 
 export type ContainerListAllMessage = z.infer<typeof ContainerListAllMessageSchema>;
 
+// --- images.list ---
+
+export const ImagesListMessageSchema = z.object({
+  type: z.literal('images.list'),
+  requestId: z.string().min(1),
+});
+
+export type ImagesListMessage = z.infer<typeof ImagesListMessageSchema>;
+
+// --- image.build ---
+
+export const ImageBuildMessageSchema = z.object({
+  type: z.literal('image.build'),
+  requestId: z.string(),
+  dockerfile: z.string(),
+  tag: z.string(),
+});
+
+export type ImageBuildMessage = z.infer<typeof ImageBuildMessageSchema>;
+
 // --- terminal.open ---
 
 export const TerminalOpenMessageSchema = z.object({
@@ -295,10 +385,12 @@ export const OrchestratorMessageSchema = z.discriminatedUnion('type', [
   ContainerRemoveMessageSchema,
   ContainerListMessageSchema,
   ContainerListAllMessageSchema,
+  ImageBuildMessageSchema,
   TerminalOpenMessageSchema,
   TerminalInputMessageSchema,
   TerminalResizeMessageSchema,
   TerminalCloseMessageSchema,
+  ImagesListMessageSchema,
 ]);
 
 export type OrchestratorMessage = z.infer<typeof OrchestratorMessageSchema>;

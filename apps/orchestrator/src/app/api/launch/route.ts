@@ -10,6 +10,8 @@ const LaunchBodySchema = z.object({
   name: z.string().min(1).optional(),
   workerName: z.string().min(1).optional(),
   extraInstructions: z.string().optional(),
+  image: z.string().min(1).optional(),
+  memoryMb: z.number().int().positive().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -28,7 +30,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { ticketUrl, workerName, extraInstructions } = parsed.data;
+  const { ticketUrl, workerName, extraInstructions, image, memoryMb } = parsed.data;
 
   let ticket;
   let claudeMd: string | undefined;
@@ -102,6 +104,8 @@ export async function POST(request: NextRequest) {
         repoUrl: ticket.repoUrl,
         branch: ticket.branch || `ticket/${ticket.id}`,
         workerName: worker.name,
+        ...(image ? { image } : {}),
+        ...(memoryMb ? { memoryMb } : {}),
       }
     : {
         ticketUrl: '',
@@ -110,6 +114,8 @@ export async function POST(request: NextRequest) {
         branch: '',
         workerName: worker.name,
         ...(parsed.data.name ? { name: parsed.data.name } : {}),
+        ...(image ? { image } : {}),
+        ...(memoryMb ? { memoryMb } : {}),
       };
 
   const message = createContainerCreate(requestId, config);

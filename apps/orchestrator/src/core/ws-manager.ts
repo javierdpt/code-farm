@@ -86,6 +86,11 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
       break;
     }
 
+    case 'images.list.response': {
+      wsState.resolveRequest(message.requestId, message.images);
+      break;
+    }
+
     case 'terminal.opened': {
       // Resolve pending request with the sessionId
       wsState.resolveRequest(message.requestId, { sessionId: message.sessionId });
@@ -116,6 +121,33 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
       break;
     }
 
+    case 'ops.log': {
+      wsState.addOpsLog({
+        timestamp: message.timestamp,
+        level: message.level,
+        message: message.message,
+        command: message.command,
+        workerId,
+        workerName: workerRegistry.get(workerId)?.name,
+      });
+      break;
+    }
+
+    case 'image.build.output': {
+      wsState.appendBuildOutput(message.requestId, message.data);
+      break;
+    }
+
+    case 'image.build.done': {
+      wsState.completeBuild(message.requestId, message.imageId, message.tag);
+      break;
+    }
+
+    case 'image.build.error': {
+      wsState.failBuild(message.requestId, message.error);
+      break;
+    }
+
     case 'worker.register': {
       // Should not happen after initial registration, ignore
       console.warn(`[WSManager] Unexpected worker.register from already-registered worker ${workerId}`);
@@ -129,7 +161,8 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
     case 'container.remove.error':
     case 'container.list.error':
     case 'container.list-all.error':
-    case 'terminal.open.error': {
+    case 'terminal.open.error':
+    case 'images.list.error': {
       console.error(`[WSManager] Worker error (${message.type}): ${message.error}`);
       wsState.rejectRequest(message.requestId, message.error);
       break;

@@ -28,6 +28,26 @@ const navItems = [
     ),
   },
   {
+    label: 'Build',
+    href: '/build',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11.5 2.5L12.5 5.5L15.5 4.5L13.5 7.5L16.5 9L13.5 9.5L14.5 12.5L12 10.5L10 13.5L9.5 10.5L6.5 11.5L8.5 8.5L5.5 7L8.5 6L7.5 3L10 5L11.5 2.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+        <path d="M4 14L2 18L6 16L4 14Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    label: 'Workers',
+    href: '/workers',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="6" r="3" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M4 17C4 13.6863 6.68629 11 10 11C13.3137 11 16 13.6863 16 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     label: 'Containers',
     href: '/containers',
     icon: (

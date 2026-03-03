@@ -1,0 +1,109 @@
+# === Base image ===
+# Ubuntu 24.04 LTS: stable, well-supported, good package availability (maybe change to debian for a slimmer image in the future)
+FROM docker.io/library/ubuntu:24.04
+
+# === System packages ===
+# - git: version control
+# - curl, ca-certificates: for downloading things securely
+# - build-essential: C/C++ compiler toolchain (some npm packages need this)
+# - sudo: so our non-root user can escalate if needed
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    ca-certificates \
+    build-essential \
+    sudo \
+    unzip \
+    locales \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN locale-gen en_US.UTF-8
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# === Node.js 22 LTS ===
+# Installed from NodeSource official repo (not the outdated Ubuntu package)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# === GitHub CLI (gh) ===
+# Official install method from GitHub
+RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+    | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+    | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+    && apt-get update \
+    && apt-get install -y gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# === Install tmux ===
+# Terminal multiplexer for managing multiple terminal sessions
+RUN apt-get update && apt-get install -y tmux && rm -rf /var/lib/apt/lists/*
+
+# === Create non-root user ===
+# Running as root inside containers is bad practice
+# We give this user passwordless sudo just in case
+RUN useradd -m -s /bin/bash developer \
+    && echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Switch to non-root user
+USER developer
+WORKDIR /home/developer
+
+# === Ensure ~/.local/bin is in PATH for all shell types ===
+# .bashrc only applies to interactive shells; this ENV ensures non-interactive
+# shells (e.g. podman exec bash -c "...") can find claude and oh-my-posh
+ENV PATH="/home/developer/.local/bin:${PATH}"
+
+# === GitHub Copilot CLI ===
+RUN gh extension install github/gh-copilot
+
+# === oh-my-posh ===
+# Prompt theme engine — installed as the developer user so paths are correct
+# The install script puts the binary in ~/.local/bin and themes in ~/.cache/oh-my-posh/themes/
+RUN curl -s https://ohmyposh.dev/install.sh | bash -s
+
+# === tmux configuration ===
+# Enable true color and UTF-8 so oh-my-posh glyphs/Nerd Font icons render correctly inside tmux
+RUN echo 'set -g default-terminal "tmux-256color"' >> ~/.tmux.conf \
+    && echo 'set -ag terminal-overrides ",xterm-256color:RGB"' >> ~/.tmux.conf
+
+# === Configure oh-my-posh in .bashrc ===
+# Uses the "atomic" theme (clean, informative, works well with Nerd Fonts)
+# You can browse themes later: ls ~/.cache/oh-my-posh/themes/
+RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc \
+    && echo 'eval "$(oh-my-posh init bash --config ~/.cache/oh-my-posh/themes/atomic.omp.json)"' >> ~/.bashrc
+
+# === Bash history settings ===
+# Increase history size, avoid duplicates, and append (don't overwrite) history
+RUN echo '' >> ~/.bashrc \
+    && echo '# History settings' >> ~/.bashrc \
+    && echo 'export HISTSIZE=10000' >> ~/.bashrc \
+    && echo 'export HISTFILESIZE=20000' >> ~/.bashrc \
+    && echo 'export HISTCONTROL=ignoreboth:erasedups' >> ~/.bashrc \
+    && echo 'shopt -s histappend' >> ~/.bashrc
+
+# === Readline config (.inputrc) ===
+# Arrow up/down search history based on what's already typed on the line
+RUN echo '"\e[A": history-search-backward' >> ~/.inputrc \
+    && echo '"\e[B": history-search-forward' >> ~/.inputrc \
+    && echo 'set show-all-if-ambiguous on' >> ~/.inputrc \
+    && echo 'set completion-ignore-case on' >> ~/.inputrc
+
+# === Neovim 0.11.1 ===
+  # Detect platform and download the correct binary
+  RUN ARCH="$(uname -m)" \
+      && if [ "$ARCH" = "aarch64" ]; then NVIM_ARCH="arm64"; else NVIM_ARCH="x86_64"; fi \
+      && curl -LO "https://github.com/neovim/neovim/releases/download/v0.11.1/nvim-linux-${NVIM_ARCH}.tar.gz" \
+      && sudo tar -C /opt -xzf "nvim-linux-${NVIM_ARCH}.tar.gz" \
+      && sudo ln -sf "/opt/nvim-linux-${NVIM_ARCH}/bin/nvim" /usr/local/bin/nvim \
+      && rm "nvim-linux-${NVIM_ARCH}.tar.gz"
+
+# === NvChad (Neovim IDE configuration) ===
+# Provides VS Code-like experience: file explorer, fuzzy finder, LSP, git integration
+RUN git clone https://github.com/NvChad/starter ~/.config/nvim \
+    && nvim --headless "+Lazy sync" +qa 2>/dev/null || true
+
+# Default command: drop into a bash shell
+CMD ["bash"]

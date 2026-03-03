@@ -1,6 +1,9 @@
-import { execFile as execFileCb } from 'node:child_process';
+import { execFile as execFileCb, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import { randomBytes } from 'node:crypto';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs';
 import type { ContainerInfo, ContainerCreateRequest, ContainerResources } from '@code-farm/shared';
 import { CONTAINER_IMAGE, PODMAN_LABEL_PREFIX } from '@code-farm/shared';
 import { config } from './config.js';
@@ -16,9 +19,18 @@ const PODMAN_TIMEOUT = 60_000;
  */
 export class ContainerManager {
   private workerId = '';
+  private opsLogCallback?: (level: 'info' | 'warn' | 'error', message: string, command?: string) => void;
 
   setWorkerId(id: string): void {
     this.workerId = id;
+  }
+
+  setOpsLogCallback(cb: (level: 'info' | 'warn' | 'error', message: string, command?: string) => void): void {
+    this.opsLogCallback = cb;
+  }
+
+  private emitOpsLog(level: 'info' | 'warn' | 'error', message: string, command?: string): void {
+    this.opsLogCallback?.(level, message, command);
   }
 
   /**
@@ -72,14 +84,21 @@ export class ContainerManager {
     args.push(image, 'sleep', 'infinity');
 
     console.log(`[WorkerAgent] Creating container "${containerName}" from image "${image}"`);
+    this.emitOpsLog('info', `Creating container "${containerName}"...`, `podman run -d --name ${containerName} ${image}`);
 
-    const { stdout } = await execFile(config.podmanPath, args, { timeout: PODMAN_TIMEOUT });
-    const containerId = stdout.trim();
+    try {
+      const { stdout } = await execFile(config.podmanPath, args, { timeout: PODMAN_TIMEOUT });
+      const containerId = stdout.trim();
 
-    console.log(`[WorkerAgent] Container created: ${containerId.substring(0, 12)}`);
+      console.log(`[WorkerAgent] Container created: ${containerId.substring(0, 12)}`);
+      this.emitOpsLog('info', `Container created: ${containerName} (${containerId.substring(0, 12)})`);
 
-    // Inspect to return canonical info
-    return this.inspect(containerId);
+      // Inspect to return canonical info
+      return this.inspect(containerId);
+    } catch (err) {
+      this.emitOpsLog('error', `Container creation failed: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   /**
@@ -87,11 +106,18 @@ export class ContainerManager {
    */
   async start(containerId: string): Promise<ContainerInfo> {
     console.log(`[WorkerAgent] Starting container ${containerId.substring(0, 12)}...`);
-    await execFile(config.podmanPath, ['start', containerId], {
-      timeout: PODMAN_TIMEOUT,
-    });
-    console.log(`[WorkerAgent] Container started: ${containerId.substring(0, 12)}`);
-    return this.inspect(containerId);
+    this.emitOpsLog('info', `Starting container ${containerId.substring(0, 12)}...`, `podman start ${containerId.substring(0, 12)}`);
+    try {
+      await execFile(config.podmanPath, ['start', containerId], {
+        timeout: PODMAN_TIMEOUT,
+      });
+      console.log(`[WorkerAgent] Container started: ${containerId.substring(0, 12)}`);
+      this.emitOpsLog('info', `Container started: ${containerId.substring(0, 12)}`);
+      return this.inspect(containerId);
+    } catch (err) {
+      this.emitOpsLog('error', `Failed to start container ${containerId.substring(0, 12)}: ${(err as Error).message}`);
+      throw err;
+    }
   }
 
   /**
@@ -99,13 +125,16 @@ export class ContainerManager {
    */
   async stop(containerId: string): Promise<ContainerInfo> {
     console.log(`[WorkerAgent] Stopping container ${containerId.substring(0, 12)}...`);
+    this.emitOpsLog('info', `Stopping container ${containerId.substring(0, 12)}...`, `podman stop --time 10 ${containerId.substring(0, 12)}`);
     try {
       await execFile(config.podmanPath, ['stop', '--time', '10', containerId], {
         timeout: PODMAN_TIMEOUT,
       });
       console.log(`[WorkerAgent] Container stopped: ${containerId.substring(0, 12)}`);
+      this.emitOpsLog('info', `Container stopped: ${containerId.substring(0, 12)}`);
     } catch (err) {
       console.warn(`[WorkerAgent] Stop warning: ${(err as Error).message}`);
+      this.emitOpsLog('warn', `Stop warning for ${containerId.substring(0, 12)}: ${(err as Error).message}`);
     }
     return this.inspect(containerId);
   }
@@ -115,6 +144,7 @@ export class ContainerManager {
    */
   async remove(containerId: string): Promise<void> {
     console.log(`[WorkerAgent] Removing container ${containerId.substring(0, 12)}...`);
+    this.emitOpsLog('info', `Removing container ${containerId.substring(0, 12)}...`, `podman rm -f ${containerId.substring(0, 12)}`);
     try {
       await execFile(config.podmanPath, ['stop', '--time', '10', containerId], {
         timeout: PODMAN_TIMEOUT,
@@ -127,8 +157,10 @@ export class ContainerManager {
         timeout: PODMAN_TIMEOUT,
       });
       console.log(`[WorkerAgent] Container removed: ${containerId.substring(0, 12)}`);
+      this.emitOpsLog('info', `Container removed: ${containerId.substring(0, 12)}`);
     } catch (err) {
       console.error(`[WorkerAgent] Failed to remove container: ${(err as Error).message}`);
+      this.emitOpsLog('error', `Failed to remove container ${containerId.substring(0, 12)}: ${(err as Error).message}`);
       throw err;
     }
   }
@@ -137,6 +169,7 @@ export class ContainerManager {
    * List all containers managed by claude-farm on this worker.
    */
   async list(): Promise<ContainerInfo[]> {
+    this.emitOpsLog('info', 'Listing managed containers...', `podman ps -a --filter label=${PODMAN_LABEL_PREFIX}.managed=true --format json`);
     const { stdout } = await execFile(
       'podman',
       [
@@ -161,6 +194,7 @@ export class ContainerManager {
    * Includes batch resource stats for all containers.
    */
   async listAll(): Promise<ContainerInfo[]> {
+    this.emitOpsLog('info', 'Listing all containers...', 'podman ps -a --format json');
     const { stdout } = await execFile(
       'podman',
       ['ps', '-a', '--format', 'json'],
@@ -253,6 +287,88 @@ export class ContainerManager {
     const trimmed = stdout.trim();
     if (!trimmed) return 0;
     return trimmed.split('\n').length;
+  }
+
+  /**
+   * List all container images on this worker.
+   */
+  async listImages(): Promise<{ id: string; name: string; tag: string; size: number }[]> {
+    this.emitOpsLog('info', 'Listing images...', 'podman images --format json');
+    const { stdout } = await execFile(
+      config.podmanPath,
+      ['images', '--format', 'json'],
+      { timeout: PODMAN_TIMEOUT },
+    );
+
+    const trimmed = stdout.trim();
+    if (!trimmed || trimmed === 'null') return [];
+
+    const images: unknown[] = JSON.parse(trimmed);
+    return images.map((img) => {
+      const obj = img as Record<string, unknown>;
+      const names = (obj.Names ?? obj.names ?? []) as string[];
+      const fullName = names[0] ?? '';
+      const [name = '', tag = 'latest'] = fullName.split(':');
+      return {
+        id: ((obj.Id ?? obj.ID ?? '') as string).substring(0, 12),
+        name,
+        tag,
+        size: (obj.Size ?? obj.size ?? 0) as number,
+      };
+    });
+  }
+
+  /**
+   * Build a container image from a Containerfile string.
+   * Streams build output and reports completion or errors via callbacks.
+   */
+  async buildImage(
+    dockerfile: string,
+    tag: string,
+    onOutput: (data: string) => void,
+    onDone: (imageId: string) => void,
+    onError: (error: string) => void,
+  ): Promise<void> {
+    const tmpDir = os.tmpdir();
+    const tmpFile = path.join(tmpDir, `Containerfile-${Date.now()}`);
+    await fs.promises.writeFile(tmpFile, dockerfile);
+
+    this.emitOpsLog('info', `Building image "${tag}"...`, `podman build -t ${tag} -f ${tmpFile}`);
+
+    try {
+      const proc = spawn(config.podmanPath, ['build', '-t', tag, '-f', tmpFile, tmpDir]);
+
+      proc.stdout.on('data', (chunk: Buffer) => onOutput(chunk.toString()));
+      proc.stderr.on('data', (chunk: Buffer) => onOutput(chunk.toString()));
+
+      proc.on('close', (code) => {
+        fs.promises.unlink(tmpFile).catch(() => {});
+        if (code === 0) {
+          execFileCb(config.podmanPath, ['images', '-q', tag], (err, stdout) => {
+            if (err) {
+              this.emitOpsLog('error', `Build succeeded but failed to get image ID: ${err.message}`);
+              onError(`Build succeeded but failed to get image ID: ${err.message}`);
+            } else {
+              this.emitOpsLog('info', `Image built successfully: ${tag} (${stdout.trim().substring(0, 12)})`);
+              onDone(stdout.trim());
+            }
+          });
+        } else {
+          this.emitOpsLog('error', `Image build failed with exit code ${code}`);
+          onError(`Build failed with exit code ${code}`);
+        }
+      });
+
+      proc.on('error', (err) => {
+        fs.promises.unlink(tmpFile).catch(() => {});
+        this.emitOpsLog('error', `Image build error: ${err.message}`);
+        onError(err.message);
+      });
+    } catch (err: unknown) {
+      fs.promises.unlink(tmpFile).catch(() => {});
+      this.emitOpsLog('error', `Image build error: ${(err as Error).message}`);
+      onError((err as Error).message);
+    }
   }
 
   /**

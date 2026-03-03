@@ -2,35 +2,35 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { AppShell } from '@/layout/app-shell';
-import { ContainerList } from '@/features/containers/container-list';
+import { WorkerList } from '@/features/dashboard/worker-list';
 import { SearchInput } from '@/common/search-input';
 import { matchesSearch } from '@/core/search';
-import type { ContainerInfo, WorkerInfo } from '@/core/types';
+import type { WorkerInfo, ContainerInfo } from '@/core/types';
 
 const POLL_INTERVAL = 5000;
 
-export default function ContainersPage() {
-  const [containers, setContainers] = useState<ContainerInfo[]>([]);
-  const [workerCount, setWorkerCount] = useState(0);
+export default function WorkersPage() {
+  const [workers, setWorkers] = useState<WorkerInfo[]>([]);
+  const [containerCount, setContainerCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
-      const [containersRes, workersRes] = await Promise.all([
-        fetch('/api/containers'),
+      const [workersRes, containersRes] = await Promise.all([
         fetch('/api/workers'),
+        fetch('/api/containers'),
       ]);
-
-      if (containersRes.ok) {
-        const data = await containersRes.json();
-        setContainers(data.containers ?? []);
-      }
 
       if (workersRes.ok) {
         const data = await workersRes.json();
-        const workers: WorkerInfo[] = data.workers ?? [];
-        setWorkerCount(workers.filter((w) => w.status === 'online').length);
+        setWorkers(data.workers ?? []);
+      }
+
+      if (containersRes.ok) {
+        const data = await containersRes.json();
+        const containers: ContainerInfo[] = data.containers ?? [];
+        setContainerCount(containers.length);
       }
     } catch {
       // Silently fail
@@ -46,16 +46,16 @@ export default function ContainersPage() {
   }, [fetchData]);
 
   const filtered = useMemo(
-    () => containers.filter((c) => matchesSearch(search, [c.name, c.id, c.image, c.status, c.workerName, c.ticketTitle, c.branch])),
-    [containers, search],
+    () => workers.filter((w) => matchesSearch(search, [w.name, w.hostname, w.platform, w.status])),
+    [workers, search],
   );
 
   return (
     <AppShell
-      title="Containers"
-      workerCount={workerCount}
-      containerCount={containers.length}
-      connected={workerCount > 0}
+      title="Workers"
+      workerCount={workers.length}
+      containerCount={containerCount}
+      connected={workers.length > 0}
     >
       {loading ? (
         <div className="flex items-center justify-center py-20">
@@ -68,16 +68,16 @@ export default function ContainersPage() {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-vsc-text-primary">
-              All Containers
+              All Workers
               <span className="ml-2 text-xs font-normal text-vsc-text-secondary">
                 ({filtered.length})
               </span>
             </h2>
-            {containers.length > 1 && (
+            {workers.length > 1 && (
               <SearchInput value={search} onChange={setSearch} className="w-64" />
             )}
           </div>
-          <ContainerList containers={filtered} />
+          <WorkerList workers={filtered} />
         </div>
       )}
     </AppShell>

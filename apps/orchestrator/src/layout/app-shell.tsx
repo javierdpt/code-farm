@@ -4,6 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import { Sidebar } from '@/layout/sidebar';
 import { Header } from '@/layout/header';
 import { StatusBar } from '@/layout/status-bar';
+import { OpsLogProvider } from '@/features/ops-log/ops-log-provider';
+import { OpsLogPanel } from '@/features/ops-log/ops-log-panel';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -59,36 +61,41 @@ export function AppShell({
   const connected = connectedProp ?? selfConnected;
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
-        <Sidebar />
+    <OpsLogProvider>
+      <div className="flex h-screen flex-col overflow-hidden">
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <Sidebar />
 
-        {/* Main Content Area */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Header title={title} breadcrumb={breadcrumb} workerCount={workerCount} />
+          {/* Main Content Area */}
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <Header title={title} breadcrumb={breadcrumb} workerCount={workerCount} />
 
-          <main className="relative flex flex-1 flex-col overflow-auto">
-            {/* Watermark background logo */}
-            <div
-              className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain"
-              style={{ backgroundImage: 'url(/images/logo.png)', backgroundAttachment: 'fixed' }}
-            />
-            <div className="pointer-events-none absolute inset-0 bg-vsc-bg-primary/93" />
+            <main className="relative flex flex-1 flex-col overflow-auto">
+              {/* Watermark background logo */}
+              <div
+                className="pointer-events-none absolute inset-0 bg-center bg-no-repeat bg-contain"
+                style={{ backgroundImage: 'url(/images/logo.png)', backgroundAttachment: 'fixed' }}
+              />
+              <div className="pointer-events-none absolute inset-0 bg-vsc-bg-primary/93" />
 
-            <div className="relative z-10 flex-1 p-6">
-              {children}
-            </div>
-          </main>
+              <div className="relative z-10 flex-1 p-6">
+                {children}
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
 
-      {/* Status Bar */}
-      <StatusBar
-        connected={connected}
-        workerCount={workerCount}
-        containerCount={containerCount}
-      />
-    </div>
+        {/* Floating Ops Log Panel */}
+        <OpsLogPanel />
+
+        {/* Status Bar */}
+        <StatusBar
+          connected={connected}
+          workerCount={workerCount}
+          containerCount={containerCount}
+        />
+      </div>
+    </OpsLogProvider>
   );
 }
