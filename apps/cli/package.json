@@ -1,6 +1,6 @@
 {
   "name": "@javierdpt/code-farm-cli",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "description": "CLI for the Code Farm platform",
   "bin": {
