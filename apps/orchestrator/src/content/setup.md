@@ -31,14 +31,42 @@ On every **worker** machine:
 - Podman installed and running
 - Network access to the orchestrator (outbound only)
 
-## 1. Start the Orchestrator
+## Quick Start with `code-farm-cli`
 
-The orchestrator is the central hub. It serves the web UI and manages all WebSocket connections.
+The easiest way to run Code Farm is with the global CLI:
 
 ```bash
 git clone <repo-url> code-farm
 cd code-farm
 npm install
+npm run install:cli
+```
+
+Then from anywhere:
+
+```bash
+# Start both orchestrator and worker
+code-farm-cli start
+
+# Or start components individually
+code-farm-cli start orchestrator
+code-farm-cli start worker
+```
+
+## 1. Start the Orchestrator
+
+The orchestrator is the central hub. It serves the web UI and manages all WebSocket connections.
+
+**Using the CLI (preferred):**
+
+```bash
+code-farm-cli start orchestrator
+```
+
+**Using npm directly:**
+
+```bash
+cd code-farm
 npm run dev
 ```
 
@@ -56,6 +84,8 @@ npm run install:worker
 ```
 
 This builds and installs the `worker-agent` command globally.
+
+> **Tip:** If you installed `code-farm-cli` above, you can also start the worker in dev mode with `code-farm-cli start worker`.
 
 ## 3. Build the Dev Workspace Image
 

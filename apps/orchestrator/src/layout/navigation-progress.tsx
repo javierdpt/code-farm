@@ -9,7 +9,7 @@ export function NavigationProgress() {
   const pathname = usePathname();
   const [state, setState] = useState<State>('idle');
   const prevPathname = useRef(pathname);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     if (prevPathname.current !== pathname) {

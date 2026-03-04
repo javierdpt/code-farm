@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { JetBrains_Mono } from 'next/font/google';
 import { NavigationProgress } from '@/layout/navigation-progress';
+import { TerminalClientWrapper } from '@/layout/terminal-client-wrapper';
 import './globals.css';
 
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
@@ -27,8 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/fonts/JetBrainsMonoNerdFont-Regular.ttf" as="font" type="font/ttf" crossOrigin="anonymous" />
       </head>
       <body className="bg-vsc-bg-secondary text-vsc-text-primary font-mono antialiased overflow-hidden h-dvh">
-        <NavigationProgress />
-        {children}
+        <TerminalClientWrapper>
+          <NavigationProgress />
+          {children}
+        </TerminalClientWrapper>
       </body>
     </html>
   );

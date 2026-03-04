@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, type FormEvent } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AppShell } from '@/layout/app-shell';
 import { TerminalPanel } from '@/features/terminal/terminal-panel';
-import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
+import { useTerminalManager } from '@/features/terminal/terminal-manager';
 import { relativeTime, formatBytes } from '@/core/format';
 import { ContainerName } from '@/common/container-name';
 import type { ContainerInfo } from '@/core/types';
@@ -20,6 +20,7 @@ const statusConfig: Record<string, { label: string; dotClass: string; textClass:
 export default function ContainerDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const { openTerminal } = useTerminalManager();
   const containerId = params.id;
 
   const [container, setContainer] = useState<ContainerInfo | null>(null);
@@ -30,7 +31,6 @@ export default function ContainerDetailPage() {
   const [removing, setRemoving] = useState(false);
   const [adopting, setAdopting] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const [showFullscreenDialog, setShowFullscreenDialog] = useState(false);
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [adoptExpanded, setAdoptExpanded] = useState(false);
   const [adoptForm, setAdoptForm] = useState({
@@ -223,7 +223,12 @@ export default function ContainerDetailPage() {
                 <>
                   <button
                     type="button"
-                    onClick={() => setShowFullscreenDialog(true)}
+                    onClick={() => openTerminal({
+                      containerId,
+                      workerId: container.workerId,
+                      containerName: container.name,
+                      workerName: container.workerName,
+                    })}
                     className="rounded bg-vsc-accent-blue px-3 py-1 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80"
                   >
                     <span className="hidden md:inline">Fullscreen</span>
@@ -436,20 +441,15 @@ export default function ContainerDetailPage() {
             workerId={container.workerId}
             className="min-h-80 flex-1"
             transparent
-            onFullscreen={() => setShowFullscreenDialog(true)}
+            onFullscreen={() => openTerminal({
+              containerId,
+              workerId: container.workerId,
+              containerName: container.name,
+              workerName: container.workerName,
+            })}
           />
         )}
       </div>
-
-      {/* Fullscreen confirmation dialog */}
-      <TerminalSessionDialog
-        open={showFullscreenDialog}
-        onConfirm={() => {
-          setShowFullscreenDialog(false);
-          router.push(`/terminal/${containerId}?worker=${container.workerId}`);
-        }}
-        onCancel={() => setShowFullscreenDialog(false)}
-      />
 
       {/* Remove Confirmation Dialog */}
       {confirmRemove && (

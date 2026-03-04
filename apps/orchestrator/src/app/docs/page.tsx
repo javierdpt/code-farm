@@ -1,26 +1,15 @@
 'use client';
 
-import { AppShell } from '@/layout/app-shell';
-import Markdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
-export default function DocsPage() {
-  const [content, setContent] = useState('');
+export default function DocsIndex() {
+  const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/docs')
-      .then((res) => res.text())
-      .then(setContent);
-  }, []);
+    // Redirect to the default docs page
+    router.replace('/docs/about');
+  }, [router]);
 
-  return (
-    <AppShell title="Setup" breadcrumb={['Setup Guide']}>
-      <div className="mx-auto max-w-4xl overflow-x-hidden">
-        <div className="prose-vsc overflow-x-hidden break-words">
-          <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
-        </div>
-      </div>
-    </AppShell>
-  );
+  return null;
 }

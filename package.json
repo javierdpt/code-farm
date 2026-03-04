@@ -13,6 +13,7 @@
     "predev": "npm run build:packages",
     "start": "npm run dev -w apps/orchestrator & npm run dev -w apps/worker-agent & wait",
     "install:worker": "npm run build:packages && npm run build -w apps/worker-agent && npm install -g ./apps/worker-agent",
+    "install:cli": "npm run build:packages && npm run build -w packages/cli && npm install -g ./packages/cli",
     "clean": "npm run clean --workspaces --if-present"
   },
   "devDependencies": {

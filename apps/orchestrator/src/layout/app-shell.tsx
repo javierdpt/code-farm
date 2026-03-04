@@ -6,6 +6,7 @@ import { Header } from '@/layout/header';
 import { StatusBar } from '@/layout/status-bar';
 import { OpsLogProvider } from '@/features/ops-log/ops-log-provider';
 import { OpsLogPanel } from '@/features/ops-log/ops-log-panel';
+import { TerminalTabBar } from '@/features/terminal/terminal-tab-bar';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -91,6 +92,9 @@ export function AppShell({
 
         {/* Floating Ops Log Panel */}
         <OpsLogPanel />
+
+        {/* Minimized Terminal Tabs */}
+        <TerminalTabBar />
 
         {/* Mobile Bottom Navigation */}
         <BottomNav />

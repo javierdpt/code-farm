@@ -1,11 +1,11 @@
 'use client';
 
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ContainerInfo } from '@/core/types';
 import { relativeTime, truncate, formatBytes } from '@/core/format';
 import { Badge } from '@/common/badge';
 import { ContainerName } from '@/common/container-name';
+import { useTerminalManager } from '@/features/terminal/terminal-manager';
 
 interface ContainerCardProps {
   container: ContainerInfo;
@@ -21,6 +21,7 @@ const statusConfig: Record<string, { label: string; dotClass: string; textClass:
 
 export function ContainerCard({ container }: ContainerCardProps) {
   const router = useRouter();
+  const { openTerminal } = useTerminalManager();
   const status = statusConfig[container.status] ?? statusConfig.stopped;
 
   return (
@@ -111,9 +112,17 @@ export function ContainerCard({ container }: ContainerCardProps) {
 
       {/* Open in Terminal button */}
       {container.status === 'running' && (
-        <Link
-          href={`/terminal/${container.id}?worker=${container.workerId}`}
-          onClick={(e) => e.stopPropagation()}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            openTerminal({
+              containerId: container.id,
+              workerId: container.workerId,
+              containerName: container.name,
+              workerName: container.workerName,
+            });
+          }}
           className="flex w-full items-center justify-center gap-2 rounded border border-vsc-accent-blue/40 bg-vsc-accent-blue/10 py-2 text-xs font-medium text-vsc-accent-blue transition-colors hover:bg-vsc-accent-blue/20"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -122,7 +131,7 @@ export function ContainerCard({ container }: ContainerCardProps) {
             <path d="M8 11.5H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
           Open in Terminal
-        </Link>
+        </button>
       )}
     </button>
   );

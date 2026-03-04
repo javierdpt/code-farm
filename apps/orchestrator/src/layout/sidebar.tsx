@@ -60,7 +60,7 @@ const navItems = [
     ),
   },
   {
-    label: 'Setup',
+    label: 'Docs',
     href: '/docs',
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -160,7 +160,9 @@ export function Sidebar() {
       <nav className="flex-1 py-2">
         <ul className="space-y-0.5 px-2">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = item.href === '/'
+              ? pathname === '/'
+              : pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <li key={item.href}>
                 <Link
@@ -191,7 +193,9 @@ export function BottomNav() {
   return (
     <nav className="flex h-[52px] shrink-0 border-t border-vsc-border bg-vsc-bg-secondary/95 md:hidden">
       {navItems.map((item) => {
-        const isActive = pathname === item.href;
+        const isActive = item.href === '/'
+          ? pathname === '/'
+          : pathname === item.href || pathname.startsWith(item.href + '/');
         return (
           <Link
             key={item.href}
