@@ -94,6 +94,8 @@ npm start
 
 The worker connects to the orchestrator and registers itself. You should see it appear on the dashboard at `http://localhost:3000`.
 
+> **Note:** When no `ORCHESTRATOR_URL` is set, the worker defaults to `ws://localhost:3000/ws/worker` — it automatically connects to an orchestrator on the same machine. For workers on a different machine, set the URL to the orchestrator's IP (e.g. `ws://192.168.1.50:3000/ws/worker`).
+
 ### 5. Launch a container
 
 Open `http://localhost:3000/launch`, paste a GitHub issue URL (e.g. `https://github.com/owner/repo/issues/42`), and click **Launch**. The system will:

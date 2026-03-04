@@ -53,6 +53,12 @@ code-farm-cli start orchestrator
 code-farm-cli start worker
 ```
 
+> **Note:** When no `ORCHESTRATOR_URL` is set, the worker defaults to `ws://localhost:3000/ws/worker` — so it automatically connects to an orchestrator running on the same machine. For remote workers on a different machine, set the environment variable before starting:
+>
+> ```bash
+> ORCHESTRATOR_URL=ws://<orchestrator-ip>:3000/ws/worker code-farm-cli start worker
+> ```
+
 ## 1. Start the Orchestrator
 
 The orchestrator is the central hub. It serves the web UI and manages all WebSocket connections.
@@ -117,6 +123,8 @@ worker-agent
 ```
 
 The worker connects to the orchestrator and registers itself. You should see it appear on the Dashboard.
+
+> **Note:** If no `ORCHESTRATOR_URL` is set, the worker defaults to `ws://localhost:3000/ws/worker` (same machine). Replace `<orchestrator-host>` with the actual IP or hostname when running on a different machine.
 
 ## 5. Launch a Container
 

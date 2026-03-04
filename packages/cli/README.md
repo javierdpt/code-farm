@@ -28,3 +28,9 @@ code-farm-cli build
 ```
 
 Logs are prefixed with colored labels (`[orchestrator]`, `[worker]`). Press `Ctrl+C` to shut down all processes cleanly.
+
+> **Note:** The worker defaults to `ws://localhost:3000/ws/worker` when no `ORCHESTRATOR_URL` is set, so it automatically connects to an orchestrator on the same machine. For remote workers, set the env var first:
+>
+> ```bash
+> ORCHESTRATOR_URL=ws://<orchestrator-ip>:3000/ws/worker code-farm-cli start worker
+> ```
