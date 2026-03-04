@@ -115,6 +115,18 @@ program
     }
 
     if (startWorker) {
+      if (!startOrchestrator && !process.env.ORCHESTRATOR_URL) {
+        console.error(
+          `${PREFIX_COLORS.worker}[code-farm.worker]${RESET} Error: ORCHESTRATOR_URL is not set.\n` +
+          `\n` +
+          `  The worker needs to know where the orchestrator is running.\n` +
+          `  Set the ORCHESTRATOR_URL environment variable before starting:\n` +
+          `\n` +
+          `    ORCHESTRATOR_URL=ws://<orchestrator-ip>:3000/ws/worker code-farm-cli start worker\n`
+        );
+        process.exit(1);
+      }
+
       children.push(
         spawnComponent(
           root,
