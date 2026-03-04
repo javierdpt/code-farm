@@ -53,7 +53,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
       return [
         ...minimized,
         {
-          id: crypto.randomUUID(),
+          id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36),
           containerId: info.containerId,
           workerId: info.workerId,
           containerName: info.containerName,
