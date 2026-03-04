@@ -4,12 +4,9 @@ import { program } from "commander";
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function findMonorepoRoot(): string {
-  let dir = __dirname;
+  let dir = process.cwd();
   while (dir !== "/") {
     try {
       const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8"));
