@@ -1,8 +1,26 @@
-# @code-farm/cli
+# @javierdpt/code-farm-cli
 
-> **TL;DR** — Global CLI to start Code Farm components from anywhere.
+> **TL;DR** — CLI to start Code Farm components. Install from GitHub Packages or from source.
 
-## Installation
+## Install from GitHub Packages
+
+One-time registry setup:
+
+```bash
+# Configure npm to use GitHub Packages for @javierdpt scope
+echo "@javierdpt:registry=https://npm.pkg.github.com" >> ~/.npmrc
+
+# Authenticate (reuse your gh CLI token, or use a PAT with read:packages scope)
+echo "//npm.pkg.github.com/:_authToken=$(gh auth token)" >> ~/.npmrc
+```
+
+Then install:
+
+```bash
+npm install -g @javierdpt/code-farm-cli
+```
+
+## Install from Source
 
 ```bash
 git clone <repo-url> code-farm
@@ -29,8 +47,17 @@ code-farm-cli build
 
 Logs are prefixed with colored labels (`[orchestrator]`, `[worker]`). Press `Ctrl+C` to shut down all processes cleanly.
 
-> **Note:** The worker defaults to `ws://localhost:3000/ws/worker` when no `ORCHESTRATOR_URL` is set, so it automatically connects to an orchestrator on the same machine. For remote workers, set the env var first:
+> **Note:** The worker defaults to `ws://localhost:3000/ws/worker` when no `ORCHESTRATOR_URL` is set. For remote workers:
 >
 > ```bash
 > ORCHESTRATOR_URL=ws://<orchestrator-ip>:3000/ws/worker code-farm-cli start worker
 > ```
+
+## Publishing
+
+The CLI is automatically published to GitHub Packages via GitHub Actions.
+
+- **Auto**: Any push to `main` that changes `packages/cli/**` bumps the **patch** version and publishes
+- **Manual**: Go to Actions > "Publish CLI" > "Run workflow" > choose **patch**, **minor**, or **major**
+
+Version bump commits are tagged `[skip ci]` to prevent infinite loops.

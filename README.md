@@ -129,10 +129,14 @@ code-farm/
 │           └── repo-setup.ts      # Clone + CLAUDE.md writer
 ├── packages/
 │   ├── shared/                    # Zod schemas, types, constants
+│   ├── cli/                       # @javierdpt/code-farm-cli (published to GitHub Packages)
 │   ├── ticket-providers/          # GitHub Issues (full), stubs for others
 │   └── claude-md-generator/       # Ticket → CLAUDE.md
 ├── containers/
 │   └── dev-workspace/Containerfile
+├── .github/
+│   └── workflows/
+│       └── publish-cli.yml        # Auto-publish CLI on push to main
 └── podman-compose.yml
 ```
 
@@ -290,6 +294,47 @@ podman build -t code-farm-orchestrator -f apps/orchestrator/Containerfile .
 # Run it
 podman run -d -p 3000:3000 --name orchestrator code-farm-orchestrator
 ```
+
+## Installing the CLI
+
+The CLI (`code-farm-cli`) lets you start orchestrator/worker components from anywhere inside the repo.
+
+### From GitHub Packages (recommended)
+
+One-time npm registry setup:
+
+```bash
+# Configure npm to use GitHub Packages for @javierdpt scope
+echo "@javierdpt:registry=https://npm.pkg.github.com" >> ~/.npmrc
+
+# Authenticate (reuse your gh CLI token, or use a PAT with read:packages scope)
+echo "//npm.pkg.github.com/:_authToken=$(gh auth token)" >> ~/.npmrc
+```
+
+Install:
+
+```bash
+npm install -g @javierdpt/code-farm-cli
+```
+
+### From source
+
+```bash
+cd code-farm
+npm install
+npm run install:cli
+```
+
+### CLI usage
+
+```bash
+code-farm-cli start               # Start orchestrator + worker
+code-farm-cli start orchestrator   # Orchestrator only
+code-farm-cli start worker         # Worker only (set ORCHESTRATOR_URL for remote)
+code-farm-cli build                # Build all packages and apps
+```
+
+> The CLI auto-publishes to GitHub Packages on every push to `main` that changes `packages/cli/**`. To bump minor/major, use the manual "Publish CLI" workflow dispatch in GitHub Actions.
 
 ## Installing the Worker Agent
 
