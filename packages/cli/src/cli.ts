@@ -63,6 +63,7 @@ function spawnComponent(
     cwd: root,
     stdio: ["ignore", "pipe", "pipe"],
     env: { ...process.env, FORCE_COLOR: "1" },
+    shell: true,
   });
 
   prefixStream(child.stdout!, label, color, process.stdout);
@@ -107,7 +108,7 @@ program
         spawnComponent(
           root,
           "apps/orchestrator",
-          "orchestrator",
+          "code-farm.orchestrator",
           PREFIX_COLORS.orchestrator
         )
       );
@@ -118,7 +119,7 @@ program
         spawnComponent(
           root,
           "apps/worker-agent",
-          "worker",
+          "code-farm.worker",
           PREFIX_COLORS.worker
         )
       );
@@ -143,6 +144,7 @@ program
     const child = spawn("npm", ["run", "build"], {
       cwd: root,
       stdio: "inherit",
+      shell: true,
     });
     child.on("exit", (code) => {
       process.exit(code ?? 1);
