@@ -88,18 +88,16 @@ export function TerminalFullscreen({
     }
   }, []);
 
-  const startHideTimer = useCallback(() => {
+  const hideToolbar = useCallback(() => {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
     }
-    hideTimerRef.current = setTimeout(() => {
-      setToolbarVisible(false);
-    }, 1500);
+    setToolbarVisible(false);
   }, []);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (e.clientY <= 10) {
+      if (e.clientY <= 18) {
         showToolbar();
       }
     },
@@ -152,7 +150,7 @@ export function TerminalFullscreen({
           className="shrink-0 z-10 overflow-hidden transition-[max-height] duration-300"
           style={{ maxHeight: toolbarVisible ? '60px' : '0' }}
           onMouseMove={cancelHideTimer}
-          onMouseLeave={startHideTimer}
+          onMouseLeave={hideToolbar}
         >
           <div className="flex items-center justify-between px-4 py-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] bg-vsc-bg-secondary/90 backdrop-blur-sm border-b border-vsc-border">
             <div className="flex items-center gap-3">

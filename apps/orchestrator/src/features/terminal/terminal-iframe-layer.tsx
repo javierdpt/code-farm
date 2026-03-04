@@ -21,14 +21,14 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
   }, []);
 
-  const startHideTimer = useCallback(() => {
+  const hideToolbar = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setToolbarVisible(false), 1500);
+    setToolbarVisible(false);
   }, []);
 
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
-      if (e.clientY <= 10) showToolbar();
+      if (e.clientY <= 18) showToolbar();
     },
     [showToolbar]
   );
@@ -92,7 +92,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
   return (
     <div
       className={session.isExpanded ? 'fixed inset-0 z-40 flex flex-col' : ''}
-      style={session.isExpanded ? { backgroundColor: 'rgba(30, 30, 30, 0.95)' } : { position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}
+      style={session.isExpanded ? { backgroundColor: 'rgba(30, 30, 30, 0.95)' } : { display: 'none' }}
     >
       {/* Toolbar — only when expanded */}
       {session.isExpanded && (
@@ -100,7 +100,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
           {/* Invisible hover zone at top — captures mouse above iframe to trigger toolbar */}
           {!toolbarVisible && (
             <div
-              className="absolute top-0 left-0 right-0 z-20 h-2"
+              className="absolute top-0 left-0 right-0 z-20 h-[18px]"
               onMouseEnter={showToolbar}
             />
           )}
@@ -110,7 +110,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
             className="shrink-0 z-10 overflow-hidden transition-[max-height] duration-300"
             style={{ maxHeight: toolbarVisible ? '60px' : '0' }}
             onMouseMove={cancelHideTimer}
-            onMouseLeave={startHideTimer}
+            onMouseLeave={hideToolbar}
           >
             <div className="flex items-center justify-between px-4 py-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] bg-vsc-bg-secondary/90 backdrop-blur-sm border-b border-vsc-border">
               <div className="flex items-center gap-3">
