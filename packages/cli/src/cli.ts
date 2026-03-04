@@ -4,6 +4,10 @@ import { program } from "commander";
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
 
 function findMonorepoRoot(): string {
   let dir = process.cwd();
@@ -76,7 +80,7 @@ function spawnComponent(
 program
   .name("code-farm-cli")
   .description("CLI for the Code Farm platform")
-  .version("0.1.0");
+  .version(pkg.version);
 
 program
   .command("start")
