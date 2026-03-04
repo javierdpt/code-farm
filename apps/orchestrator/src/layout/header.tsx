@@ -10,7 +10,7 @@ interface HeaderProps {
 
 export function Header({ title = 'Dashboard', breadcrumb, workerCount = 0 }: HeaderProps) {
   return (
-    <header className="flex h-12 shrink-0 items-center justify-between border-b border-vsc-border bg-vsc-bg-secondary px-4 pt-[env(safe-area-inset-top)]">
+    <header className="safe-area-top flex min-h-12 shrink-0 items-center justify-between border-b border-vsc-border bg-vsc-bg-secondary px-4">
       {/* Left: Logo (mobile) + Title + Breadcrumb */}
       <div className="flex items-center gap-2">
         <Image

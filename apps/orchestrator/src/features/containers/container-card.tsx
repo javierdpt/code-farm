@@ -25,9 +25,11 @@ export function ContainerCard({ container }: ContainerCardProps) {
   const status = statusConfig[container.status] ?? statusConfig.stopped;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => router.push(`/containers/${container.id}`)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/containers/${container.id}`); } }}
       className="flex w-full cursor-pointer flex-col justify-start rounded border border-vsc-border bg-vsc-bg-secondary/95 p-4 text-left transition-colors hover:border-vsc-accent-blue focus:outline-none focus:ring-1 focus:ring-vsc-accent-blue"
     >
       {/* Header: Name + Status */}
@@ -133,6 +135,6 @@ export function ContainerCard({ container }: ContainerCardProps) {
           Open in Terminal
         </button>
       )}
-    </button>
+    </div>
   );
 }

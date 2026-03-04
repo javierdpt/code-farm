@@ -15,7 +15,7 @@ export function StatusFooter({ left, right, rightCollapsed }: StatusFooterProps)
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <footer className="shrink-0 bg-vsc-status-bar text-xs text-white pb-[env(safe-area-inset-bottom)]">
+    <footer className="safe-area-bottom shrink-0 bg-vsc-status-bar text-xs text-white">
       {/* Main row */}
       <div className="hidden h-6 items-center justify-between px-3 md:flex">
         <div className="hidden items-center gap-3 md:flex">{left}</div>
@@ -24,10 +24,13 @@ export function StatusFooter({ left, right, rightCollapsed }: StatusFooterProps)
         <div className="hidden items-center gap-4 md:flex">{right}</div>
       </div>
 
-      {/* Mobile: tappable full-width bar */}
-      <button
+      {/* Mobile: tappable full-width bar (div instead of button to allow nested buttons in left/right slots) */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setExpanded((v) => !v)}
-        className="flex h-10 w-full items-center justify-between px-4 active:bg-white/10 md:hidden"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((v) => !v); } }}
+        className="flex h-10 w-full cursor-pointer items-center justify-between px-4 active:bg-white/10 md:hidden"
         aria-label="Toggle status details"
       >
         <div className="flex items-center gap-3">{left}</div>
@@ -43,7 +46,7 @@ export function StatusFooter({ left, right, rightCollapsed }: StatusFooterProps)
             <path d="M2 6L5 3L8 6" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
-      </button>
+      </div>
 
       {/* Mobile expanded row */}
       {expanded && (
