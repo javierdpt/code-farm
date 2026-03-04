@@ -18,5 +18,8 @@
   },
   "devDependencies": {
     "typescript": "^5.8.0"
+  },
+  "dependencies": {
+    "@javierdpt/code-farm-cli": "^0.1.2"
   }
 }
