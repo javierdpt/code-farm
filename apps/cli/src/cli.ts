@@ -14,7 +14,7 @@ function findMonorepoRoot(): string {
   while (dir !== "/") {
     try {
       const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8"));
-      if (pkg.name === "code-farm") return dir;
+      if (pkg.name === "@javierdpt/code-farm") return dir;
     } catch {
       // no package.json here, keep walking
     }
