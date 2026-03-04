@@ -304,7 +304,16 @@ The CLI (`code-farm-cli`) lets you start orchestrator/worker components from any
 One-time npm registry setup:
 
 ```bash
-# Configure registry + auth (reuses your gh CLI token, or replace with a PAT with read:packages scope)
+# Configure npm to use GitHub Packages for @javierdpt scope
+echo "@javierdpt:registry=https://npm.pkg.github.com" >> ~/.npmrc
+
+# Authenticate (reuse your gh CLI token, or use a PAT with read:packages scope)
+echo "//npm.pkg.github.com/:_authToken=$(gh auth token)" >> ~/.npmrc
+```
+
+Or as a single command:
+
+```bash
 printf "@javierdpt:registry=https://npm.pkg.github.com\n//npm.pkg.github.com/:_authToken=$(gh auth token)\n" >> ~/.npmrc
 ```
 
