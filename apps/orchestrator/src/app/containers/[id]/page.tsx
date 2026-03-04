@@ -29,6 +29,8 @@ export default function ContainerDetailPage() {
   const [removing, setRemoving] = useState(false);
   const [adopting, setAdopting] = useState(false);
   const [showFullscreenDialog, setShowFullscreenDialog] = useState(false);
+  const [infoExpanded, setInfoExpanded] = useState(false);
+  const [adoptExpanded, setAdoptExpanded] = useState(false);
   const [adoptForm, setAdoptForm] = useState({
     ticketUrl: '',
     ticketTitle: '',
@@ -186,35 +188,57 @@ export default function ContainerDetailPage() {
           </div>
         )}
 
-        {/* Container Info */}
-        <div className="rounded border border-vsc-border bg-vsc-bg-secondary p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-vsc-text-primary">{container.name}</h2>
-              <span className={`flex items-center gap-1.5 text-xs ${status.textClass}`}>
+        {/* Container Info — collapsible */}
+        <div className="rounded border border-vsc-border bg-vsc-bg-secondary/95 overflow-hidden">
+          {/* Always-visible header row */}
+          <div
+            className="flex w-full flex-wrap items-center gap-2 px-4 py-3"
+          >
+            {/* Clickable left section: chevron + name + status */}
+            <button
+              type="button"
+              onClick={() => setInfoExpanded((v) => !v)}
+              className="flex min-w-0 items-center gap-2 text-left transition-colors hover:opacity-80"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                className={`shrink-0 text-vsc-text-secondary transition-transform duration-200 ${infoExpanded ? 'rotate-90' : ''}`}
+              >
+                <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <h2 className="truncate text-sm font-semibold text-vsc-text-primary">{container.name}</h2>
+              <span className={`flex shrink-0 items-center gap-1.5 text-xs ${status.textClass}`}>
                 <span className={`inline-block h-2 w-2 rounded-full ${status.dotClass}`} />
                 {status.label}
               </span>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-2">
+            </button>
+            {/* Action buttons — wrap to next line on narrow screens */}
+            <div className="flex items-center gap-2 ml-auto">
               {container.status === 'running' && (
                 <>
                   <button
                     type="button"
                     onClick={() => setShowFullscreenDialog(true)}
-                    className="rounded bg-vsc-accent-blue px-3 py-1.5 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80"
+                    className="rounded bg-vsc-accent-blue px-3 py-1 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80"
                   >
-                    Open Fullscreen Terminal
+                    <span className="hidden md:inline">Fullscreen</span>
+                    <svg className="md:hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 3 21 3 21 9" />
+                      <polyline points="9 21 3 21 3 15" />
+                      <line x1="21" y1="3" x2="14" y2="10" />
+                      <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
                   </button>
                   <button
                     type="button"
                     onClick={handleStop}
                     disabled={stopping}
-                    className="rounded border border-vsc-warning/50 px-3 py-1.5 text-xs text-vsc-warning transition-colors hover:bg-vsc-warning/10 disabled:opacity-50"
+                    className="rounded border border-vsc-warning/50 px-3 py-1 text-xs text-vsc-warning transition-colors hover:bg-vsc-warning/10 disabled:opacity-50"
                   >
-                    {stopping ? 'Stopping...' : 'Stop'}
+                    {stopping ? '...' : 'Stop'}
                   </button>
                 </>
               )}
@@ -223,9 +247,9 @@ export default function ContainerDetailPage() {
                   type="button"
                   onClick={handleStart}
                   disabled={starting}
-                  className="rounded bg-vsc-success px-3 py-1.5 text-xs text-white transition-colors hover:bg-vsc-success/80 disabled:opacity-50"
+                  className="rounded bg-vsc-success px-3 py-1 text-xs text-white transition-colors hover:bg-vsc-success/80 disabled:opacity-50"
                 >
-                  {starting ? 'Starting...' : 'Start'}
+                  {starting ? '...' : 'Start'}
                 </button>
               )}
               {(container.status === 'stopped' || container.status === 'running') && (
@@ -233,145 +257,173 @@ export default function ContainerDetailPage() {
                   type="button"
                   onClick={handleRemove}
                   disabled={removing}
-                  className="rounded border border-vsc-error/50 px-3 py-1.5 text-xs text-vsc-error transition-colors hover:bg-vsc-error/10 disabled:opacity-50"
+                  className="rounded border border-vsc-error/50 px-3 py-1 text-xs text-vsc-error transition-colors hover:bg-vsc-error/10 disabled:opacity-50"
                 >
-                  {removing ? 'Removing...' : 'Remove'}
+                  {removing ? '...' : 'Remove'}
                 </button>
               )}
             </div>
           </div>
 
-          {/* Detail Grid */}
-          <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
-            {container.ticketTitle && (
-              <div className="flex items-start justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-                <span className="text-vsc-text-secondary">Ticket</span>
-                <a
-                  href={container.ticketUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-2 truncate text-right text-vsc-accent-blue hover:underline"
-                >
-                  {container.ticketTitle}
-                </a>
-              </div>
-            )}
-            {container.repoUrl && (
-              <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-                <span className="text-vsc-text-secondary">Repo</span>
-                <a
-                  href={container.repoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-2 truncate text-vsc-accent-blue hover:underline"
-                >
-                  {container.repoUrl}
-                </a>
-              </div>
-            )}
-            {container.branch && (
-              <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-                <span className="text-vsc-text-secondary">Branch</span>
-                <span className="text-vsc-text-primary">{container.branch}</span>
-              </div>
-            )}
-            <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-              <span className="text-vsc-text-secondary">Worker</span>
-              <span className="text-vsc-text-primary">{container.workerName}</span>
-            </div>
-            <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-              <span className="text-vsc-text-secondary">Image</span>
-              <span className="text-vsc-text-primary">{container.image}</span>
-            </div>
-            <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-              <span className="text-vsc-text-secondary">Created</span>
-              <span className="text-vsc-text-primary">{relativeTime(container.createdAt)}</span>
-            </div>
-            {container.resources && (
-              <>
+          {/* Expandable detail grid */}
+          {infoExpanded && (
+            <div className="border-t border-vsc-border px-4 pb-4 pt-3">
+              <div className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
+                {container.ticketTitle && (
+                  <div className="flex items-start justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                    <span className="text-vsc-text-secondary">Ticket</span>
+                    <a
+                      href={container.ticketUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 truncate text-right text-vsc-accent-blue hover:underline"
+                    >
+                      {container.ticketTitle}
+                    </a>
+                  </div>
+                )}
+                {container.repoUrl && (
+                  <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                    <span className="text-vsc-text-secondary">Repo</span>
+                    <a
+                      href={container.repoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-2 truncate text-vsc-accent-blue hover:underline"
+                    >
+                      {container.repoUrl}
+                    </a>
+                  </div>
+                )}
+                {container.branch && (
+                  <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                    <span className="text-vsc-text-secondary">Branch</span>
+                    <span className="text-vsc-text-primary">{container.branch}</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-                  <span className="text-vsc-text-secondary">CPU</span>
-                  <span className="text-vsc-text-primary">
-                    {container.status === 'running' ? `${container.resources.cpuPercent.toFixed(1)}%` : '--'}
-                  </span>
+                  <span className="text-vsc-text-secondary">Worker</span>
+                  <span className="text-vsc-text-primary">{container.workerName}</span>
                 </div>
                 <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-                  <span className="text-vsc-text-secondary">Memory</span>
-                  <span className="text-vsc-text-primary">
-                    {container.status === 'running' ? formatBytes(container.resources.memoryUsage) : '--'}
-                  </span>
+                  <span className="text-vsc-text-secondary">Image</span>
+                  <span className="text-vsc-text-primary">{container.image}</span>
                 </div>
                 <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
-                  <span className="text-vsc-text-secondary">Disk</span>
-                  <span className="text-vsc-text-primary">
-                    {container.resources.diskUsage > 0 ? formatBytes(container.resources.diskUsage) : '--'}
-                  </span>
+                  <span className="text-vsc-text-secondary">Created</span>
+                  <span className="text-vsc-text-primary">{relativeTime(container.createdAt)}</span>
                 </div>
-              </>
-            )}
-          </div>
+                {container.resources && (
+                  <>
+                    <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                      <span className="text-vsc-text-secondary">CPU</span>
+                      <span className="text-vsc-text-primary">
+                        {container.status === 'running' ? `${container.resources.cpuPercent.toFixed(1)}%` : '--'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                      <span className="text-vsc-text-secondary">Memory</span>
+                      <span className="text-vsc-text-primary">
+                        {container.status === 'running' ? formatBytes(container.resources.memoryUsage) : '--'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between rounded bg-vsc-bg-tertiary px-3 py-2">
+                      <span className="text-vsc-text-secondary">Disk</span>
+                      <span className="text-vsc-text-primary">
+                        {container.resources.diskUsage > 0 ? formatBytes(container.resources.diskUsage) : '--'}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Adopt Section — for unmanaged containers */}
+        {/* Adopt Section — collapsible, for unmanaged containers */}
         {!container.managed && (
-          <div className="rounded border border-vsc-border bg-vsc-bg-secondary p-4">
-            <h3 className="mb-3 text-sm font-semibold text-vsc-text-primary">
-              Adopt Container
-            </h3>
-            <p className="mb-4 text-xs text-vsc-text-secondary">
-              This container is not managed by Code Farm. Fill in the details below to adopt it.
-            </p>
-            <form onSubmit={handleAdopt} className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
-              <label className="flex flex-col gap-1">
-                <span className="text-vsc-text-secondary">Ticket URL</span>
-                <input
-                  type="url"
-                  value={adoptForm.ticketUrl}
-                  onChange={(e) => setAdoptForm((f) => ({ ...f, ticketUrl: e.target.value }))}
-                  placeholder="https://linear.app/team/ISSUE-123"
-                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-vsc-text-secondary">Ticket Title</span>
-                <input
-                  type="text"
-                  value={adoptForm.ticketTitle}
-                  onChange={(e) => setAdoptForm((f) => ({ ...f, ticketTitle: e.target.value }))}
-                  placeholder="Fix login bug"
-                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-vsc-text-secondary">Repo URL</span>
-                <input
-                  type="url"
-                  value={adoptForm.repoUrl}
-                  onChange={(e) => setAdoptForm((f) => ({ ...f, repoUrl: e.target.value }))}
-                  placeholder="https://github.com/org/repo"
-                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-vsc-text-secondary">Branch</span>
-                <input
-                  type="text"
-                  value={adoptForm.branch}
-                  onChange={(e) => setAdoptForm((f) => ({ ...f, branch: e.target.value }))}
-                  placeholder="feat/my-branch"
-                  className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
-                />
-              </label>
-              <div className="md:col-span-2">
-                <button
-                  type="submit"
-                  disabled={adopting}
-                  className="rounded bg-vsc-accent-blue px-4 py-1.5 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80 disabled:opacity-50"
-                >
-                  {adopting ? 'Adopting...' : 'Adopt Container'}
-                </button>
+          <div className="rounded border border-vsc-border bg-vsc-bg-secondary/95 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setAdoptExpanded((v) => !v)}
+              className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-vsc-hover/50"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 14 14"
+                fill="none"
+                className={`shrink-0 text-vsc-text-secondary transition-transform duration-200 ${adoptExpanded ? 'rotate-90' : ''}`}
+              >
+                <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <h3 className="text-sm font-semibold text-vsc-text-primary">
+                Adopt Container
+              </h3>
+              {!adoptExpanded && (
+                <span className="text-xs text-vsc-text-secondary">
+                  Assign ticket, repo &amp; branch to this external container
+                </span>
+              )}
+            </button>
+            {adoptExpanded && (
+              <div className="border-t border-vsc-border px-4 pb-4 pt-3">
+                <p className="mb-4 text-xs text-vsc-text-secondary">
+                  This container is not managed by Code Farm. Fill in the details below to adopt it.
+                </p>
+                <form onSubmit={handleAdopt} className="grid grid-cols-1 gap-3 text-xs md:grid-cols-2">
+                  <label className="flex flex-col gap-1">
+                    <span className="text-vsc-text-secondary">Ticket URL</span>
+                    <input
+                      type="url"
+                      value={adoptForm.ticketUrl}
+                      onChange={(e) => setAdoptForm((f) => ({ ...f, ticketUrl: e.target.value }))}
+                      placeholder="https://linear.app/team/ISSUE-123"
+                      className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-vsc-text-secondary">Ticket Title</span>
+                    <input
+                      type="text"
+                      value={adoptForm.ticketTitle}
+                      onChange={(e) => setAdoptForm((f) => ({ ...f, ticketTitle: e.target.value }))}
+                      placeholder="Fix login bug"
+                      className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-vsc-text-secondary">Repo URL</span>
+                    <input
+                      type="url"
+                      value={adoptForm.repoUrl}
+                      onChange={(e) => setAdoptForm((f) => ({ ...f, repoUrl: e.target.value }))}
+                      placeholder="https://github.com/org/repo"
+                      className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1">
+                    <span className="text-vsc-text-secondary">Branch</span>
+                    <input
+                      type="text"
+                      value={adoptForm.branch}
+                      onChange={(e) => setAdoptForm((f) => ({ ...f, branch: e.target.value }))}
+                      placeholder="feat/my-branch"
+                      className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
+                    />
+                  </label>
+                  <div className="md:col-span-2">
+                    <button
+                      type="submit"
+                      disabled={adopting}
+                      className="rounded bg-vsc-accent-blue px-4 py-1.5 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80 disabled:opacity-50"
+                    >
+                      {adopting ? 'Adopting...' : 'Adopt Container'}
+                    </button>
+                  </div>
+                </form>
               </div>
-            </form>
+            )}
           </div>
         )}
 
@@ -381,6 +433,7 @@ export default function ContainerDetailPage() {
             containerId={containerId}
             workerId={container.workerId}
             className="min-h-80 flex-1"
+            transparent
             onFullscreen={() => setShowFullscreenDialog(true)}
           />
         )}

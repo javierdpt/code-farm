@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { Sidebar } from '@/layout/sidebar';
+import { Sidebar, BottomNav } from '@/layout/sidebar';
 import { Header } from '@/layout/header';
 import { StatusBar } from '@/layout/status-bar';
 import { OpsLogProvider } from '@/features/ops-log/ops-log-provider';
@@ -62,7 +62,7 @@ export function AppShell({
 
   return (
     <OpsLogProvider>
-      <div className="flex h-screen flex-col overflow-hidden">
+      <div className="flex h-dvh flex-col overflow-hidden">
         <div className="flex flex-1 overflow-hidden">
           {/* Sidebar */}
           <Sidebar />
@@ -88,6 +88,9 @@ export function AppShell({
 
         {/* Floating Ops Log Panel */}
         <OpsLogPanel />
+
+        {/* Mobile Bottom Navigation */}
+        <BottomNav />
 
         {/* Status Bar */}
         <StatusBar

@@ -5,6 +5,11 @@ import type { ContainerInfo } from '@code-farm/shared';
 import { workerRegistry } from '@/core/worker-registry';
 import { wsState } from '@/core/ws-state';
 
+const PodmanArgSchema = z.object({
+  flag: z.string().min(1),
+  value: z.string().min(1),
+});
+
 const LaunchBodySchema = z.object({
   ticketUrl: z.string().url().optional(),
   name: z.string().min(1).optional(),
@@ -12,6 +17,8 @@ const LaunchBodySchema = z.object({
   extraInstructions: z.string().optional(),
   image: z.string().min(1).optional(),
   memoryMb: z.number().int().positive().optional(),
+  token: z.string().optional(),
+  podmanArgs: z.array(PodmanArgSchema).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -30,7 +37,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { ticketUrl, workerName, extraInstructions, image, memoryMb } = parsed.data;
+  const { ticketUrl, workerName, extraInstructions, image, memoryMb, token, podmanArgs } = parsed.data;
 
   let ticket;
   let claudeMd: string | undefined;
@@ -47,7 +54,7 @@ export async function POST(request: NextRequest) {
           { status: 400 },
         );
       }
-      ticket = await provider.fetch(ticketUrl);
+      ticket = await provider.fetch(ticketUrl, { token });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       return NextResponse.json(
@@ -106,6 +113,7 @@ export async function POST(request: NextRequest) {
         workerName: worker.name,
         ...(image ? { image } : {}),
         ...(memoryMb ? { memoryMb } : {}),
+        ...(podmanArgs?.length ? { podmanArgs } : {}),
       }
     : {
         ticketUrl: '',
@@ -116,6 +124,7 @@ export async function POST(request: NextRequest) {
         ...(parsed.data.name ? { name: parsed.data.name } : {}),
         ...(image ? { image } : {}),
         ...(memoryMb ? { memoryMb } : {}),
+        ...(podmanArgs?.length ? { podmanArgs } : {}),
       };
 
   const message = createContainerCreate(requestId, config);

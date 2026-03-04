@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useTerminal, MAX_RECONNECT_ATTEMPTS } from '@/features/terminal/use-terminal';
 import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
+import { StatusFooter } from '@/layout/status-footer';
 
 interface TerminalFullscreenProps {
   containerId: string;
@@ -26,14 +27,14 @@ export function TerminalFullscreen({
   containerCount = 0,
 }: TerminalFullscreenProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, wasConnected, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
     containerId,
     workerId,
     transparent: true,
   });
 
   const isReconnecting = reconnectAttempt > 0 && reconnectAttempt <= MAX_RECONNECT_ATTEMPTS && !isConnected;
-  const isExhausted = reconnectAttempt > MAX_RECONNECT_ATTEMPTS && !isConnected;
+  const isDisconnected = !isConnected && !isConnecting;
 
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -134,11 +135,11 @@ export function TerminalFullscreen({
             <div className="flex items-center gap-1.5">
               <span
                 className={`inline-block w-2 h-2 rounded-full ${
-                  isConnected ? 'bg-vsc-success' : isReconnecting ? 'bg-vsc-warning animate-pulse' : 'bg-vsc-error'
+                  isConnected ? 'bg-vsc-success' : isConnecting ? 'bg-vsc-warning animate-pulse' : 'bg-vsc-error'
                 }`}
               />
               <span className="text-xs text-vsc-text-secondary">
-                {isConnected ? 'Connected' : isReconnecting ? `Reconnecting (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})` : 'Disconnected'}
+                {isConnected ? 'Connected' : isReconnecting ? `Reconnecting (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})` : isConnecting ? 'Connecting...' : 'Disconnected'}
               </span>
             </div>
           </div>
@@ -172,7 +173,6 @@ export function TerminalFullscreen({
         <div
           ref={terminalRef}
           className="absolute inset-0"
-          style={{ padding: 4 }}
         />
 
         {/* Reconnecting overlay */}
@@ -194,8 +194,8 @@ export function TerminalFullscreen({
           </div>
         )}
 
-        {/* Disconnected overlay (after max attempts exhausted or intentional disconnect) */}
-        {(wasConnected || isExhausted) && !isConnected && !isReconnecting && (
+        {/* Disconnected overlay — shows whenever not connected and not retrying */}
+        {isDisconnected && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
             <div className="relative mb-6">
               <span
@@ -209,75 +209,87 @@ export function TerminalFullscreen({
                 <circle cx="6.5" cy="17" r="1" fill="currentColor" />
               </svg>
             </div>
-            <p className="mb-4 text-base text-vsc-text-secondary">Terminal disconnected</p>
+            <p className="mb-4 text-base text-vsc-text-secondary">
+              {wasConnected ? 'Terminal disconnected' : 'Could not connect to terminal'}
+            </p>
             <button
               type="button"
               onClick={reconnect}
               className="rounded bg-vsc-success px-6 py-2 text-sm text-white transition-colors hover:bg-vsc-success/80"
             >
-              Connect
+              {wasConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
         )}
       </div>
 
       {/* Bottom status bar */}
-      <footer className="z-10 flex h-6 shrink-0 items-center justify-between bg-vsc-status-bar px-3 text-xs text-white">
-        {/* Left: container context */}
-        <div className="flex items-center gap-3">
-          <span className="font-medium">{containerName || containerId.slice(0, 12)}</span>
-          {workerName && (
+      <div className="z-10 shrink-0">
+        <StatusFooter
+          left={
             <>
-              <span className="text-white/40">|</span>
+              <span className="font-medium">{containerName || containerId.slice(0, 12)}</span>
+              {workerName && (
+                <>
+                  <span className="text-white/40">|</span>
+                  <div className="flex items-center gap-1.5">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="6" cy="4" r="2" stroke="currentColor" strokeWidth="1" />
+                      <path d="M2 10C2 8 4 7 6 7C8 7 10 8 10 10" stroke="currentColor" strokeWidth="1" />
+                    </svg>
+                    <span>{workerName}</span>
+                  </div>
+                </>
+              )}
+              {image && (
+                <>
+                  <span className="hidden text-white/40 md:inline">|</span>
+                  <div className="hidden items-center gap-1.5 md:flex">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <rect x="1" y="2" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                      <rect x="1" y="7" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
+                    </svg>
+                    <span>{image}</span>
+                  </div>
+                </>
+              )}
+            </>
+          }
+          rightCollapsed={
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full ${
+                isConnected ? 'bg-green-300' : isConnecting ? 'bg-yellow-300 animate-pulse' : 'bg-red-300'
+              }`}
+            />
+          }
+          right={
+            <>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`inline-block h-1.5 w-1.5 rounded-full ${
+                    isConnected ? 'bg-green-300' : isConnecting ? 'bg-yellow-300 animate-pulse' : 'bg-red-300'
+                  }`}
+                />
+                <span>{isConnected ? 'Connected' : isReconnecting ? 'Reconnecting...' : isConnecting ? 'Connecting...' : 'Disconnected'}</span>
+              </div>
               <div className="flex items-center gap-1.5">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="6" cy="4" r="2" stroke="currentColor" strokeWidth="1" />
                   <path d="M2 10C2 8 4 7 6 7C8 7 10 8 10 10" stroke="currentColor" strokeWidth="1" />
                 </svg>
-                <span>{workerName}</span>
+                <span>{workerCount} worker{workerCount !== 1 ? 's' : ''}</span>
               </div>
-            </>
-          )}
-          {image && (
-            <>
-              <span className="text-white/40">|</span>
               <div className="flex items-center gap-1.5">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <rect x="1" y="2" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
                   <rect x="1" y="7" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
                 </svg>
-                <span>{image}</span>
+                <span>{containerCount} container{containerCount !== 1 ? 's' : ''}</span>
               </div>
             </>
-          )}
-        </div>
-
-        {/* Right: global stats */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span
-              className={`inline-block h-1.5 w-1.5 rounded-full ${
-                isConnected ? 'bg-green-300' : isReconnecting ? 'bg-yellow-300 animate-pulse' : 'bg-red-300'
-              }`}
-            />
-            <span>{isConnected ? 'Connected' : isReconnecting ? 'Reconnecting...' : 'Disconnected'}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="6" cy="4" r="2" stroke="currentColor" strokeWidth="1" />
-              <path d="M2 10C2 8 4 7 6 7C8 7 10 8 10 10" stroke="currentColor" strokeWidth="1" />
-            </svg>
-            <span>{workerCount} worker{workerCount !== 1 ? 's' : ''}</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="1" y="2" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
-              <rect x="1" y="7" width="10" height="4" rx="0.5" stroke="currentColor" strokeWidth="1" />
-            </svg>
-            <span>{containerCount} container{containerCount !== 1 ? 's' : ''}</span>
-          </div>
-        </div>
-      </footer>
+          }
+        />
+      </div>
 
       {/* Exit confirmation dialog */}
       <TerminalSessionDialog

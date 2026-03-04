@@ -40,21 +40,19 @@ export class ContainerManager {
   async create(request: ContainerCreateRequest): Promise<ContainerInfo> {
     const shortId = randomBytes(4).toString('hex');
 
+    const image = request.image || config.containerImage || CONTAINER_IMAGE;
+
     let containerName: string;
     if (request.name) {
       containerName = request.name;
-    } else if (request.ticketTitle) {
-      const sanitizedTitle = request.ticketTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 40);
-      containerName = `cf-${sanitizedTitle}-${shortId}`;
+    } else if (request.ticketUrl) {
+      // Naming: <image-name>-<provider><owner>-<ticketid>
+      const imageName = image.split('/').pop()?.split(':')[0] ?? 'cf';
+      const { provider, owner, id } = this.parseTicketUrl(request.ticketUrl);
+      containerName = `${imageName}-${provider}${owner}-${id}`;
     } else {
       containerName = `cf-empty-${shortId}`;
     }
-
-    const image = request.image || config.containerImage || CONTAINER_IMAGE;
     const createdAt = new Date().toISOString();
     const workerName = request.workerName || config.workerName;
 
@@ -81,10 +79,26 @@ export class ContainerManager {
       args.push('--label', `${PODMAN_LABEL_PREFIX}.branch=${request.branch}`);
     }
 
+    // Memory limit
+    if (request.memoryMb) {
+      args.push('-m', `${request.memoryMb}m`);
+    }
+
+    // Extra podman arguments
+    if (request.podmanArgs?.length) {
+      for (const { flag, value } of request.podmanArgs) {
+        args.push(flag, value);
+      }
+    }
+
     args.push(image, 'sleep', 'infinity');
 
-    console.log(`[WorkerAgent] Creating container "${containerName}" from image "${image}"`);
-    this.emitOpsLog('info', `Creating container "${containerName}"...`, `podman run -d --name ${containerName} ${image}`);
+    const extraArgsStr = request.podmanArgs?.length
+      ? ' ' + request.podmanArgs.map(a => `${a.flag} ${a.value}`).join(' ')
+      : '';
+    const memStr = request.memoryMb ? ` -m ${request.memoryMb}m` : '';
+    console.log(`[WorkerAgent] Creating container "${containerName}" from image "${image}"${memStr}${extraArgsStr}`);
+    this.emitOpsLog('info', `Creating container "${containerName}"...`, `podman run -d --name ${containerName}${memStr}${extraArgsStr} ${image}`);
 
     try {
       const { stdout } = await execFile(config.podmanPath, args, { timeout: PODMAN_TIMEOUT });
@@ -604,6 +618,22 @@ export class ContainerManager {
       image: (config_.Image ?? '') as string,
       managed,
     };
+  }
+
+  /**
+   * Parse a ticket URL into provider, owner/account, and ticket ID.
+   */
+  private parseTicketUrl(url: string): { provider: string; owner: string; id: string } {
+    // GitHub: https://github.com/{owner}/{repo}/issues/{number}
+    const gh = url.match(/github\.com\/([^/]+)\/[^/]+\/issues\/(\d+)/);
+    if (gh) return { provider: 'github', owner: gh[1], id: gh[2] };
+
+    // Azure DevOps: https://dev.azure.com/{org}/{project}/_workitems/edit/{id}
+    const az = url.match(/dev\.azure\.com\/([^/]+)\/[^/]+\/_workitems\/edit\/(\d+)/);
+    if (az) return { provider: 'azdo', owner: az[1], id: az[2] };
+
+    // Fallback: use sanitized URL parts
+    return { provider: 'ticket', owner: '', id: randomBytes(4).toString('hex') };
   }
 
   /**

@@ -44,6 +44,15 @@ export const ContainerInfoSchema = z.object({
 
 export type ContainerInfo = z.infer<typeof ContainerInfoSchema>;
 
+// --- Podman Extra Arguments ---
+
+export const PodmanArgSchema = z.object({
+  flag: z.string().min(1),
+  value: z.string().min(1),
+});
+
+export type PodmanArg = z.infer<typeof PodmanArgSchema>;
+
 // --- Container Create Request ---
 
 export const ContainerCreateRequestSchema = z.object({
@@ -55,6 +64,7 @@ export const ContainerCreateRequestSchema = z.object({
   image: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
   memoryMb: z.number().int().positive().optional(),
+  podmanArgs: z.array(PodmanArgSchema).optional(),
 });
 
 export type ContainerCreateRequest = z.infer<typeof ContainerCreateRequestSchema>;

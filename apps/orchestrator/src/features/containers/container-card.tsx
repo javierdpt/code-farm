@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ContainerInfo } from '@/core/types';
 import { relativeTime, truncate, formatBytes } from '@/core/format';
@@ -25,7 +26,7 @@ export function ContainerCard({ container }: ContainerCardProps) {
     <button
       type="button"
       onClick={() => router.push(`/containers/${container.id}`)}
-      className="w-full cursor-pointer rounded border border-vsc-border bg-vsc-bg-secondary p-4 text-left transition-colors hover:border-vsc-accent-blue focus:outline-none focus:ring-1 focus:ring-vsc-accent-blue"
+      className="flex w-full cursor-pointer flex-col justify-start rounded border border-vsc-border bg-vsc-bg-secondary/95 p-4 text-left transition-colors hover:border-vsc-accent-blue focus:outline-none focus:ring-1 focus:ring-vsc-accent-blue"
     >
       {/* Header: Name + Status */}
       <div className="mb-2 flex items-center justify-between">
@@ -86,7 +87,7 @@ export function ContainerCard({ container }: ContainerCardProps) {
       )}
 
       {/* Footer: Worker, Branch, Time */}
-      <div className="flex items-center justify-between text-xs text-vsc-text-secondary">
+      <div className="mb-3 mt-auto flex items-center justify-between text-xs text-vsc-text-secondary">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -106,6 +107,22 @@ export function ContainerCard({ container }: ContainerCardProps) {
         </div>
         <span>{relativeTime(container.createdAt)}</span>
       </div>
+
+      {/* Open in Terminal button */}
+      {container.status === 'running' && (
+        <Link
+          href={`/terminal/${container.id}?worker=${container.workerId}`}
+          onClick={(e) => e.stopPropagation()}
+          className="flex w-full items-center justify-center gap-2 rounded border border-vsc-accent-blue/40 bg-vsc-accent-blue/10 py-2 text-xs font-medium text-vsc-accent-blue transition-colors hover:bg-vsc-accent-blue/20"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1" y="2.5" width="14" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M4 6.5L6.5 9L4 11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M8 11.5H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
+          Open in Terminal
+        </Link>
+      )}
     </button>
   );
 }

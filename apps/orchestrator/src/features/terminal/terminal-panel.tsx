@@ -7,6 +7,7 @@ interface TerminalPanelProps {
   containerId: string;
   workerId: string;
   className?: string;
+  transparent?: boolean;
   onFullscreen?: () => void;
 }
 
@@ -14,16 +15,18 @@ export function TerminalPanel({
   containerId,
   workerId,
   className,
+  transparent,
   onFullscreen,
 }: TerminalPanelProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, wasConnected, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
     containerId,
     workerId,
+    transparent,
   });
 
   const isReconnecting = reconnectAttempt > 0 && reconnectAttempt <= MAX_RECONNECT_ATTEMPTS && !isConnected;
-  const isExhausted = reconnectAttempt > MAX_RECONNECT_ATTEMPTS && !isConnected;
+  const isDisconnected = !isConnected && !isConnecting;
 
   const handleReconnect = useCallback(() => {
     reconnect();
@@ -31,7 +34,7 @@ export function TerminalPanel({
 
   return (
     <div
-      className={`flex flex-col rounded-lg border border-vsc-border bg-vsc-bg-primary overflow-hidden ${className ?? ''}`}
+      className={`flex flex-col rounded-lg border border-vsc-border overflow-hidden ${transparent ? 'bg-transparent' : 'bg-vsc-bg-primary'} ${className ?? ''}`}
       style={{ minHeight: 300 }}
     >
       {/* Top bar */}
@@ -40,9 +43,9 @@ export function TerminalPanel({
           {/* Connection status indicator */}
           <span
             className={`inline-block w-2.5 h-2.5 rounded-full ${
-              isConnected ? 'bg-vsc-success' : isReconnecting ? 'bg-vsc-warning animate-pulse' : 'bg-vsc-error'
+              isConnected ? 'bg-vsc-success' : isConnecting ? 'bg-vsc-warning animate-pulse' : 'bg-vsc-error'
             }`}
-            title={isConnected ? 'Connected' : isReconnecting ? `Reconnecting (${reconnectAttempt}/${MAX_RECONNECT_ATTEMPTS})` : 'Disconnected'}
+            title={isConnected ? 'Connected' : isConnecting ? 'Connecting...' : 'Disconnected'}
           />
           <span className="text-sm text-vsc-text-primary font-medium">Terminal</span>
           <span className="text-xs text-vsc-text-secondary truncate max-w-48">
@@ -50,7 +53,7 @@ export function TerminalPanel({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {wasConnected && !isConnected && (
+          {isDisconnected && (
             <button
               type="button"
               onClick={handleReconnect}
@@ -115,8 +118,8 @@ export function TerminalPanel({
           </div>
         )}
 
-        {/* Disconnected overlay (after max attempts exhausted or intentional disconnect) */}
-        {(wasConnected || isExhausted) && !isConnected && !isReconnecting && (
+        {/* Disconnected overlay — shows when not connected and not trying to connect */}
+        {isDisconnected && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-vsc-bg-primary/90">
             <div className="relative mb-4">
               <span
@@ -130,13 +133,15 @@ export function TerminalPanel({
                 <circle cx="6.5" cy="17" r="1" fill="currentColor" />
               </svg>
             </div>
-            <p className="mb-3 text-sm text-vsc-text-secondary">Terminal disconnected</p>
+            <p className="mb-3 text-sm text-vsc-text-secondary">
+              {wasConnected ? 'Terminal disconnected' : 'Could not connect to terminal'}
+            </p>
             <button
               type="button"
               onClick={handleReconnect}
               className="rounded bg-vsc-success px-4 py-1.5 text-xs text-white transition-colors hover:bg-vsc-success/80"
             >
-              Connect
+              {wasConnected ? 'Reconnect' : 'Connect'}
             </button>
           </div>
         )}

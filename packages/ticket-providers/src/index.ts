@@ -4,7 +4,7 @@ import { AzureDevOpsProvider } from './azure-devops.js';
 import { TrelloProvider } from './trello.js';
 import { MondayProvider } from './monday.js';
 
-export type { TicketProvider } from './provider.interface.js';
+export type { TicketProvider, ProviderFetchOptions } from './provider.interface.js';
 export { GitHubIssuesProvider } from './github-issues.js';
 
 const providers: TicketProvider[] = [

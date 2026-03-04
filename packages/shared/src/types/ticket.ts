@@ -30,7 +30,7 @@ export const NormalizedTicketSchema = z.object({
   title: z.string().min(1),
   description: z.string(),
   labels: z.array(z.string()),
-  repoUrl: z.string().url(),
+  repoUrl: z.string().url().optional(),
   branch: z.string().min(1).optional(),
   comments: z.array(TicketCommentSchema),
 });

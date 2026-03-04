@@ -16,8 +16,8 @@ export default function DocsPage() {
 
   return (
     <AppShell title="Setup" breadcrumb={['Setup Guide']}>
-      <div className="mx-auto max-w-4xl px-6 py-8">
-        <div className="prose-vsc">
+      <div className="mx-auto max-w-4xl overflow-x-hidden">
+        <div className="prose-vsc overflow-x-hidden break-words">
           <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
         </div>
       </div>

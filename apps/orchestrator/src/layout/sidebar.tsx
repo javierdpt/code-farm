@@ -71,27 +71,42 @@ const navItems = [
   },
 ];
 
+// Persist sidebar state across navigations (module-level so it survives remounts)
+let sidebarUserCollapsed: boolean | null = null;
+
 export function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  // Default to expanded (false) on SSR so the sidebar renders at full width immediately.
+  // useEffect will correct this on narrow viewports after hydration (no transition).
+  const [collapsed, setCollapsed] = useState<boolean>(() => sidebarUserCollapsed ?? false);
+  const [enableTransition, setEnableTransition] = useState(sidebarUserCollapsed !== null);
   const [hovered, setHovered] = useState(false);
 
-  // Auto-collapse on mobile
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)');
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+    if (sidebarUserCollapsed === null) {
+      const isNarrow = window.matchMedia('(max-width: 1024px)').matches;
+      sidebarUserCollapsed = isNarrow;
+      setCollapsed(isNarrow);
+      // Enable transitions after the correct width has been painted
+      requestAnimationFrame(() => setEnableTransition(true));
+    } else {
+      setEnableTransition(true);
+    }
+
+    const mq = window.matchMedia('(max-width: 1024px)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      sidebarUserCollapsed = e.matches;
       setCollapsed(e.matches);
     };
-    handleChange(mq);
     mq.addEventListener('change', handleChange);
     return () => mq.removeEventListener('change', handleChange);
   }, []);
 
   return (
     <aside
-      className={`flex flex-col border-r border-vsc-border bg-vsc-bg-secondary/90 transition-all duration-200 ${
-        collapsed ? 'w-[60px]' : 'w-[240px]'
-      }`}
+      className={`hidden flex-col border-r border-vsc-border bg-vsc-bg-secondary/90 md:flex ${
+        enableTransition ? 'transition-all duration-200' : ''
+      } ${collapsed ? 'w-[60px]' : 'w-[240px]'}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -103,12 +118,13 @@ export function Sidebar() {
               src="/images/logo-small-with-text.png"
               alt="Code Farm"
               width={160}
-              height={36}
-              className="h-7 w-auto object-contain"
+              height={44}
+              className="w-auto"
               priority
+              style={{position: 'relative', height: 44, left: -6}}
             />
             <button
-              onClick={() => setCollapsed(true)}
+              onClick={() => { sidebarUserCollapsed = true; setCollapsed(true); }}
               className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-vsc-text-secondary hover:bg-vsc-hover hover:text-vsc-text-primary transition-colors"
               aria-label="Collapse sidebar"
             >
@@ -119,7 +135,7 @@ export function Sidebar() {
           </>
         ) : hovered ? (
           <button
-            onClick={() => setCollapsed(false)}
+            onClick={() => { sidebarUserCollapsed = false; setCollapsed(false); }}
             className="flex h-7 w-7 items-center justify-center rounded text-vsc-text-secondary hover:bg-vsc-hover hover:text-vsc-text-primary transition-colors"
             aria-label="Expand sidebar"
           >
@@ -135,6 +151,7 @@ export function Sidebar() {
             height={32}
             className="h-7 w-7 object-contain"
             priority
+            style={{height: 48, width: 48}}
           />
         )}
       </div>
@@ -164,5 +181,32 @@ export function Sidebar() {
         </ul>
       </nav>
     </aside>
+  );
+}
+
+/** Bottom navigation bar for mobile viewports */
+export function BottomNav() {
+  const pathname = usePathname();
+
+  return (
+    <nav className="flex h-[52px] shrink-0 border-t border-vsc-border bg-vsc-bg-secondary/95 md:hidden">
+      {navItems.map((item) => {
+        const isActive = pathname === item.href;
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={`flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] transition-colors ${
+              isActive
+                ? 'text-vsc-accent-blue'
+                : 'text-vsc-text-secondary'
+            }`}
+          >
+            <span className="flex-shrink-0">{item.icon}</span>
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
   );
 }

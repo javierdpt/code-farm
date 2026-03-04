@@ -58,12 +58,33 @@
   --success: #4ec9b0;
 }
 
+/* ─── Navigation Progress (indeterminate) ─── */
+@keyframes nav-bar-1 {
+  0%        { left: -35%;  right: 100%; }
+  60%, 100% { left: 100%;  right: -90%; }
+}
+
+@keyframes nav-bar-2 {
+  0%        { left: -200%; right: 100%; }
+  60%, 100% { left: 107%;  right: -8%;  }
+}
+
+@keyframes nav-complete {
+  0%   { opacity: 1; }
+  60%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* ─── Base Styles ─── */
-html,
-body {
-  background-color: var(--bg-primary);
+html {
+  background-color: var(--bg-secondary);
   color: var(--text-primary);
   min-height: 100vh;
+}
+
+body {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* ─── Scrollbar Styling ─── */
@@ -149,6 +170,7 @@ body {
   padding: 0.15em 0.4em;
   border-radius: 3px;
   font-size: 0.85em;
+  word-break: break-all;
 }
 
 .prose-vsc pre {
@@ -185,7 +207,9 @@ body {
 }
 
 .prose-vsc table {
+  display: block;
   width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin-bottom: 1rem;
   font-size: 0.85em;

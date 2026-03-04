@@ -30,7 +30,7 @@ export function WorkerCard({ worker }: WorkerCardProps) {
     <button
       type="button"
       onClick={() => router.push(`/workers/${worker.id}`)}
-      className="cursor-pointer rounded border border-vsc-border bg-vsc-bg-secondary p-4 text-left transition-colors hover:border-vsc-accent-blue focus:outline-none focus:ring-1 focus:ring-vsc-accent-blue"
+      className="cursor-pointer rounded border border-vsc-border bg-vsc-bg-secondary/95 p-4 text-left transition-colors hover:border-vsc-accent-blue focus:outline-none focus:ring-1 focus:ring-vsc-accent-blue"
     >
       {/* Header: Name + Status */}
       <div className="mb-3 flex items-center justify-between">

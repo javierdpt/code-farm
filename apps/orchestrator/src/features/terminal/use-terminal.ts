@@ -14,6 +14,7 @@ interface UseTerminalOptions {
 interface UseTerminalReturn {
   isConnected: boolean;
   wasConnected: boolean;
+  isConnecting: boolean;
   reconnectAttempt: number;
   disconnect: () => void;
   reconnect: () => void;
@@ -58,6 +59,7 @@ export function useTerminal(
 
   const [isConnected, setIsConnected] = useState(false);
   const [wasConnected, setWasConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(true); // true on mount — connecting immediately
   const [reconnectAttempt, setReconnectAttempt] = useState(0);
 
   const terminalInstanceRef = useRef<Terminal | null>(null);
@@ -65,14 +67,11 @@ export function useTerminal(
   const wsRef = useRef<WebSocket | null>(null);
   const mountedRef = useRef(true);
   const sessionReadyRef = useRef(false);
-  // Generation counter to prevent stale connect() calls from proceeding
   const connectGenRef = useRef(0);
-  // Auto-reconnect state
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectAttemptRef = useRef(0);
   const intentionalRef = useRef(false);
 
-  // Store latest callbacks in refs to avoid re-triggering effects
   const onConnectedRef = useRef(onConnected);
   const onDisconnectedRef = useRef(onDisconnected);
   const onErrorRef = useRef(onError);
@@ -84,6 +83,11 @@ export function useTerminal(
     sessionReadyRef.current = false;
 
     if (wsRef.current) {
+      // Detach handlers before closing to prevent onclose from triggering auto-reconnect
+      wsRef.current.onopen = null;
+      wsRef.current.onmessage = null;
+      wsRef.current.onclose = null;
+      wsRef.current.onerror = null;
       wsRef.current.close();
       wsRef.current = null;
     }
@@ -104,33 +108,31 @@ export function useTerminal(
     const el = terminalRef.current;
     if (!el) return;
 
-    // Clean up any existing instance
+    // Clean up any existing instance (handlers detached — no spurious onclose)
     cleanup();
 
-    // Increment generation so any prior in-flight connect() calls abort
+    // Mark as connecting
+    if (mountedRef.current) setIsConnecting(true);
+
     const gen = ++connectGenRef.current;
 
-    // Dynamically import xterm.js modules (they access the DOM)
-    // CSS is imported globally via globals.css
-    // Also wait for the Nerd Font to load so terminal renders glyphs correctly
     const [{ Terminal }, { FitAddon }] = await Promise.all([
       import('@xterm/xterm'),
       import('@xterm/addon-fit'),
       document.fonts.ready,
     ]);
 
-    // Abort if unmounted or a newer connect() was started while we awaited
     if (!mountedRef.current || gen !== connectGenRef.current) return;
 
-    // Create terminal instance
     const theme = transparent
       ? { ...THEME, background: 'rgba(30, 30, 30, 0.85)' }
       : THEME;
 
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
     const terminal = new Terminal({
       theme,
       fontFamily: "'JetBrainsMono Nerd Font', 'JetBrains Mono', monospace",
-      fontSize: 14,
+      fontSize: isMobile ? 10 : 14,
       cursorBlink: true,
       allowTransparency: !!transparent,
       allowProposedApi: true,
@@ -142,17 +144,14 @@ export function useTerminal(
     terminalInstanceRef.current = terminal;
     fitAddonRef.current = fitAddon;
 
-    // Open terminal into the DOM element
     terminal.open(el);
 
-    // Fit after opening so the terminal has a proper size
     try {
       fitAddon.fit();
     } catch {
       // FitAddon can throw if the element has zero size; ignore on first pass
     }
 
-    // Determine WebSocket protocol based on page protocol
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const cols = terminal.cols;
     const rows = terminal.rows;
@@ -168,7 +167,6 @@ export function useTerminal(
     ws.onmessage = (event) => {
       if (!mountedRef.current) return;
 
-      // Parse server messages
       if (typeof event.data === 'string') {
         try {
           const msg = JSON.parse(event.data);
@@ -179,14 +177,13 @@ export function useTerminal(
             setReconnectAttempt(0);
             intentionalRef.current = false;
             setIsConnected(true);
+            setIsConnecting(false);
             setWasConnected(true);
             onConnectedRef.current?.();
             return;
           }
 
           if (msg.type === 'terminal.output') {
-            // Data from the server is base64-encoded raw bytes.
-            // Decode to Uint8Array so xterm.js handles UTF-8 correctly.
             const binary = atob(msg.data);
             const bytes = new Uint8Array(binary.length);
             for (let i = 0; i < binary.length; i++) {
@@ -199,15 +196,14 @@ export function useTerminal(
           if (msg.type === 'terminal.closed') {
             terminal.write('\r\n\x1b[31m[Terminal session closed]\x1b[0m\r\n');
             setIsConnected(false);
+            setIsConnecting(false);
             onDisconnectedRef.current?.();
             return;
           }
         } catch {
-          // Not JSON - write raw text to terminal
           terminal.write(event.data);
         }
       } else if (event.data instanceof Blob) {
-        // Binary data - read and write to terminal
         event.data.arrayBuffer().then((buf) => {
           terminal.write(new Uint8Array(buf));
         });
@@ -218,6 +214,7 @@ export function useTerminal(
       if (!mountedRef.current) return;
       sessionReadyRef.current = false;
       setIsConnected(false);
+      setIsConnecting(false);
       onDisconnectedRef.current?.();
 
       // Auto-reconnect with exponential backoff
@@ -226,6 +223,7 @@ export function useTerminal(
         reconnectAttemptRef.current = attempt;
         setReconnectAttempt(attempt);
         if (attempt <= MAX_RECONNECT_ATTEMPTS) {
+          setIsConnecting(true);
           const delay = Math.min(RECONNECT_BASE_DELAY * Math.pow(2, attempt - 1), RECONNECT_MAX_DELAY);
           reconnectTimerRef.current = setTimeout(() => connect(), delay);
         }
@@ -244,7 +242,17 @@ export function useTerminal(
       }
     });
 
-    // Handle resize
+    // Handle resize + mobile font size adaptation
+    const mobileMq = window.matchMedia('(max-width: 768px)');
+    const handleMobileChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      if (!terminalInstanceRef.current) return;
+      terminalInstanceRef.current.options.fontSize = e.matches ? 10 : 14;
+      try {
+        fitAddonRef.current?.fit();
+      } catch { /* ignore */ }
+    };
+    mobileMq.addEventListener('change', handleMobileChange);
+
     const handleResize = () => {
       if (!fitAddonRef.current || !terminalInstanceRef.current) return;
       try {
@@ -254,7 +262,6 @@ export function useTerminal(
       }
     };
 
-    // When terminal dimensions change, notify the server
     terminal.onResize(({ cols, rows }: { cols: number; rows: number }) => {
       if (wsRef.current?.readyState === WebSocket.OPEN && sessionReadyRef.current) {
         wsRef.current.send(
@@ -269,11 +276,18 @@ export function useTerminal(
 
     window.addEventListener('resize', handleResize);
 
-    // Store the cleanup for the resize listener on the terminal ref
+    let resizeObserver: ResizeObserver | null = null;
+    if (el) {
+      resizeObserver = new ResizeObserver(handleResize);
+      resizeObserver.observe(el);
+    }
+
     const currentTerminal = terminalInstanceRef.current;
     const originalDispose = currentTerminal.dispose.bind(currentTerminal);
     currentTerminal.dispose = () => {
       window.removeEventListener('resize', handleResize);
+      mobileMq.removeEventListener('change', handleMobileChange);
+      resizeObserver?.disconnect();
       originalDispose();
     };
   }, [containerId, workerId, transparent, terminalRef, cleanup]);
@@ -286,10 +300,12 @@ export function useTerminal(
     }
     reconnectAttemptRef.current = 0;
     setReconnectAttempt(0);
+    setIsConnecting(false);
     cleanup();
   }, [cleanup]);
 
   const reconnect = useCallback(() => {
+    // Cancel any pending auto-reconnect
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
@@ -297,6 +313,7 @@ export function useTerminal(
     reconnectAttemptRef.current = 0;
     setReconnectAttempt(0);
     intentionalRef.current = false;
+    // connect() will call cleanup() which detaches old WS handlers first
     connect();
   }, [connect]);
 
@@ -315,5 +332,5 @@ export function useTerminal(
     };
   }, [connect, cleanup]);
 
-  return { isConnected, wasConnected, reconnectAttempt, disconnect, reconnect };
+  return { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect };
 }

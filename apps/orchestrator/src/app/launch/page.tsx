@@ -3,11 +3,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppShell } from '@/layout/app-shell';
 import { TicketInput } from '@/features/launch/ticket-input';
-import { LaunchConfig, type ImageOption } from '@/features/launch/launch-config';
+import { LaunchConfig, type ImageOption, type PodmanArg } from '@/features/launch/launch-config';
 import { LaunchProgress, type LaunchStep } from '@/features/launch/launch-progress';
+import { ConnectionConfigDialog, loadConnections, providerKey } from '@/features/launch/connection-config-dialog';
 import type { WorkerInfo } from '@/core/types';
 
 type LaunchPhase = 'idle' | 'launching' | 'done' | 'error';
+
+/** Extract short image name, e.g. "localhost/claude-code-dev:latest" → "claude-code-dev" */
+function imageShortName(img: string): string {
+  const fallback = 'claude-code-dev';
+  if (!img) return fallback;
+  return img.split('/').pop()?.split(':')[0] || fallback;
+}
 
 // Simple client-side URL pattern matching for provider detection
 function detectProviderFromUrl(url: string): string | null {
@@ -17,6 +25,11 @@ function detectProviderFromUrl(url: string): string | null {
   if (/monday\.com/.test(url)) return 'Monday.com';
   return null;
 }
+
+const DEFAULT_PODMAN_ARGS: PodmanArg[] = [
+  { flag: '-v', value: 'claude-config:/home/developer/.claude' },
+  { flag: '-v', value: 'gh-config:/home/developer/.config/gh' },
+];
 
 type LaunchMode = 'issue' | 'empty';
 
@@ -29,13 +42,15 @@ export default function LaunchPage() {
   const [extraInstructions, setExtraInstructions] = useState('');
   const [image, setImage] = useState('');
   const [memoryGb, setMemoryGb] = useState(4);
-  const [containerName, setContainerName] = useState('');
+  const [containerName, setContainerName] = useState(imageShortName(''));
+  const [podmanArgs, setPodmanArgs] = useState<PodmanArg[]>(DEFAULT_PODMAN_ARGS);
   const [workers, setWorkers] = useState<WorkerInfo[]>([]);
   const [images, setImages] = useState<ImageOption[]>([]);
   const [phase, setPhase] = useState<LaunchPhase>('idle');
   const [steps, setSteps] = useState<LaunchStep[]>([]);
   const [containerId, setContainerId] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [configOpen, setConfigOpen] = useState(false);
 
   // Fetch workers list
   useEffect(() => {
@@ -73,6 +88,16 @@ export default function LaunchPage() {
     return () => clearInterval(interval);
   }, []);
 
+  // Track whether user has manually edited the name
+  const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
+
+  // Pre-fill container name from image when image changes (unless user edited)
+  useEffect(() => {
+    if (!nameManuallyEdited) {
+      setContainerName(imageShortName(image));
+    }
+  }, [image, nameManuallyEdited]);
+
   const handleDetect = useCallback(() => {
     setDetecting(true);
     // Client-side detection from URL pattern
@@ -83,13 +108,13 @@ export default function LaunchPage() {
 
   const handleLaunch = useCallback(async () => {
     if (launchMode === 'issue' && !ticketUrl) return;
-    if (launchMode === 'empty' && !containerName.trim()) return;
 
     setPhase('launching');
     setError(undefined);
     setContainerId(undefined);
 
     const memoryMb = memoryGb * 1024;
+    const filteredArgs = podmanArgs.filter((a) => a.flag.trim() && a.value.trim());
 
     if (launchMode === 'empty') {
       const initialSteps: LaunchStep[] = [
@@ -103,10 +128,11 @@ export default function LaunchPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            name: containerName.trim(),
+            ...(containerName.trim() ? { name: containerName.trim() } : {}),
             ...(selectedWorker ? { workerName: selectedWorker } : {}),
             ...(image ? { image } : {}),
             memoryMb,
+            ...(filteredArgs.length ? { podmanArgs: filteredArgs } : {}),
           }),
         });
 
@@ -148,15 +174,22 @@ export default function LaunchPage() {
       setSteps(initialSteps);
 
       try {
+        const connections = loadConnections();
+        const key = providerKey(detectedProvider);
+        const token = key ? connections[key] : undefined;
+
         const res = await fetch('/api/launch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ticketUrl,
+            ...(containerName.trim() ? { name: containerName.trim() } : {}),
             ...(selectedWorker ? { workerName: selectedWorker } : {}),
             ...(extraInstructions ? { extraInstructions } : {}),
             ...(image ? { image } : {}),
             memoryMb,
+            ...(token ? { token } : {}),
+            ...(filteredArgs.length ? { podmanArgs: filteredArgs } : {}),
           }),
         });
 
@@ -219,13 +252,13 @@ export default function LaunchPage() {
         setPhase('error');
       }
     }
-  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions, image, memoryGb]);
+  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions, image, memoryGb, podmanArgs, detectedProvider]);
 
   const isLaunching = phase === 'launching';
   const canLaunch =
     launchMode === 'issue'
       ? ticketUrl.length > 0 && /^https?:\/\/.+/.test(ticketUrl) && !isLaunching
-      : containerName.trim().length > 0 && !isLaunching;
+      : !isLaunching;
 
   return (
     <AppShell
@@ -265,31 +298,101 @@ export default function LaunchPage() {
 
         {launchMode === 'issue' ? (
           /* Ticket URL Input */
-          <TicketInput
-            value={ticketUrl}
-            onChange={setTicketUrl}
-            detectedProvider={detectedProvider}
-            onDetect={handleDetect}
-            detecting={detecting}
-            disabled={isLaunching}
-          />
-        ) : (
-          /* Container Name */
           <div className="space-y-2">
-            <label htmlFor="container-name" className="block text-sm font-medium text-vsc-text-primary">
-              Container Name
-            </label>
-            <input
-              id="container-name"
-              type="text"
-              value={containerName}
-              onChange={(e) => setContainerName(e.target.value)}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-vsc-text-primary">Ticket URL</span>
+              <button
+                type="button"
+                onClick={() => setConfigOpen(true)}
+                title="Configure provider connections"
+                className="text-vsc-text-secondary transition-colors hover:text-vsc-text-primary"
+              >
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M6.5 1H9.5L10 3L12 4L14 3L15.5 5.5L14 7.5V8.5L15.5 10.5L14 13L12 12L10 13L9.5 15H6.5L6 13L4 12L2 13L0.5 10.5L2 8.5V7.5L0.5 5.5L2 3L4 4L6 3L6.5 1Z"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+                </svg>
+              </button>
+            </div>
+            <TicketInput
+              value={ticketUrl}
+              onChange={setTicketUrl}
+              detectedProvider={detectedProvider}
+              onDetect={handleDetect}
+              detecting={detecting}
               disabled={isLaunching}
-              placeholder="my-dev-container"
-              className="w-full rounded border border-vsc-border bg-vsc-bg-input px-3 py-2 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
+              onOpenConfig={() => setConfigOpen(true)}
             />
           </div>
-        )}
+        ) : null}
+
+        {/* Container Name — shared between both modes */}
+        <div className="space-y-2">
+          <label htmlFor="container-name" className="block text-sm font-medium text-vsc-text-primary">
+            Container Name
+          </label>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                id="container-name"
+                type="text"
+                value={containerName}
+                onChange={(e) => {
+                  setContainerName(e.target.value);
+                  setNameManuallyEdited(true);
+                }}
+                disabled={isLaunching}
+                placeholder={
+                  launchMode === 'issue'
+                    ? '<image>-<provider><owner>-<id>'
+                    : '<image>-<name>'
+                }
+                className="w-full rounded border border-vsc-border bg-vsc-bg-input px-3 py-2 pr-8 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
+              />
+              {containerName && !isLaunching && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContainerName('');
+                    setNameManuallyEdited(true);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-vsc-text-secondary transition-colors hover:text-vsc-text-primary"
+                  title="Clear name"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+            </div>
+            {nameManuallyEdited && (
+              <button
+                type="button"
+                onClick={() => {
+                  setNameManuallyEdited(false);
+                  setContainerName(imageShortName(image));
+                }}
+                disabled={isLaunching}
+                className="flex-shrink-0 rounded bg-vsc-bg-tertiary px-2 py-2 text-xs text-vsc-text-secondary transition-colors hover:bg-vsc-hover hover:text-vsc-text-primary disabled:opacity-50"
+                title="Reset to default"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 2V5H5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M2.5 5A4.5 4.5 0 1 1 3 8.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-vsc-text-secondary">
+            {launchMode === 'issue'
+              ? 'Auto-appended: -<provider><owner>-<ticketId>'
+              : 'Leave empty for auto-generated name'}
+          </p>
+        </div>
 
         {/* Advanced Options — shared between both modes */}
         <LaunchConfig
@@ -301,6 +404,8 @@ export default function LaunchPage() {
           images={images}
           memoryGb={memoryGb}
           onMemoryGbChange={setMemoryGb}
+          podmanArgs={podmanArgs}
+          onPodmanArgsChange={setPodmanArgs}
           extraInstructions={extraInstructions}
           onExtraInstructionsChange={setExtraInstructions}
           disabled={isLaunching}
@@ -331,6 +436,11 @@ export default function LaunchPage() {
           <LaunchProgress steps={steps} containerId={containerId} error={error} />
         )}
       </div>
+
+      <ConnectionConfigDialog
+        open={configOpen}
+        onClose={() => setConfigOpen(false)}
+      />
     </AppShell>
   );
 }

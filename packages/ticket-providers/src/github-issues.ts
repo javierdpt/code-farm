@@ -1,5 +1,5 @@
 import { NormalizedTicket } from '@code-farm/shared';
-import { TicketProvider } from './provider.interface.js';
+import { TicketProvider, ProviderFetchOptions } from './provider.interface.js';
 
 const GITHUB_ISSUE_RE = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/;
 
@@ -27,7 +27,7 @@ export class GitHubIssuesProvider implements TicketProvider {
     return GITHUB_ISSUE_RE.test(url);
   }
 
-  async fetch(url: string): Promise<NormalizedTicket> {
+  async fetch(url: string, options?: ProviderFetchOptions): Promise<NormalizedTicket> {
     const match = url.match(GITHUB_ISSUE_RE);
     if (!match) {
       throw new Error(`Invalid GitHub issue URL: ${url}`);
@@ -41,7 +41,7 @@ export class GitHubIssuesProvider implements TicketProvider {
       'User-Agent': 'code-farm',
     };
 
-    const token = process.env.GITHUB_TOKEN;
+    const token = options?.token || process.env.GITHUB_TOKEN;
     if (token) {
       headers.Authorization = `Bearer ${token}`;
     }
@@ -55,12 +55,21 @@ export class GitHubIssuesProvider implements TicketProvider {
     ]);
 
     if (!issueResponse.ok) {
-      if (issueResponse.status === 404) {
-        throw new Error(`GitHub issue not found: ${owner}/${repo}#${issueNumber}`);
-      }
-      if (issueResponse.status === 403 || issueResponse.status === 429) {
+      if (issueResponse.status === 401 || issueResponse.status === 403) {
         throw new Error(
-          `GitHub API rate limit exceeded. Set GITHUB_TOKEN env var to increase limits.`
+          `Unauthorized — configure your GitHub token`
+        );
+      }
+      if (issueResponse.status === 404) {
+        throw new Error(
+          token
+            ? `GitHub issue not found: ${owner}/${repo}#${issueNumber}`
+            : `Unauthorized — issue not found or private repo. Configure your GitHub token`,
+        );
+      }
+      if (issueResponse.status === 429) {
+        throw new Error(
+          `GitHub API rate limit exceeded. Configure your GitHub token to increase limits.`
         );
       }
       throw new Error(

@@ -12,6 +12,11 @@ export interface ImageOption {
   size: number;
 }
 
+export interface PodmanArg {
+  flag: string;
+  value: string;
+}
+
 interface LaunchConfigProps {
   workers: WorkerInfo[];
   selectedWorker: string;
@@ -21,6 +26,8 @@ interface LaunchConfigProps {
   images: ImageOption[];
   memoryGb: number;
   onMemoryGbChange: (gb: number) => void;
+  podmanArgs: PodmanArg[];
+  onPodmanArgsChange: (args: PodmanArg[]) => void;
   extraInstructions: string;
   onExtraInstructionsChange: (value: string) => void;
   disabled?: boolean;
@@ -35,6 +42,8 @@ export function LaunchConfig({
   images,
   memoryGb,
   onMemoryGbChange,
+  podmanArgs,
+  onPodmanArgsChange,
   extraInstructions,
   onExtraInstructionsChange,
   disabled = false,
@@ -145,6 +154,69 @@ export function LaunchConfig({
               />
               <span className="text-xs text-vsc-text-secondary">GB</span>
             </div>
+          </div>
+
+          {/* Podman Arguments */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-vsc-text-primary">Podman Arguments</span>
+              <button
+                type="button"
+                onClick={() => onPodmanArgsChange([...podmanArgs, { flag: '', value: '' }])}
+                disabled={disabled}
+                className="flex items-center gap-1 rounded px-2 py-0.5 text-xs text-vsc-accent-blue transition-colors hover:bg-vsc-hover disabled:opacity-50"
+              >
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 2V10M2 6H10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                Add
+              </button>
+            </div>
+            {podmanArgs.length === 0 ? (
+              <p className="text-xs text-vsc-text-secondary/60">No extra arguments. Click + Add to include volumes, env vars, etc.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {podmanArgs.map((arg, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={arg.flag}
+                      onChange={(e) => {
+                        const next = [...podmanArgs];
+                        next[i] = { ...next[i], flag: e.target.value };
+                        onPodmanArgsChange(next);
+                      }}
+                      disabled={disabled}
+                      placeholder="-v"
+                      className="w-20 rounded border border-vsc-border bg-vsc-bg-input px-2 py-1.5 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
+                    />
+                    <input
+                      type="text"
+                      value={arg.value}
+                      onChange={(e) => {
+                        const next = [...podmanArgs];
+                        next[i] = { ...next[i], value: e.target.value };
+                        onPodmanArgsChange(next);
+                      }}
+                      disabled={disabled}
+                      placeholder="volume-name:/path"
+                      className="flex-1 rounded border border-vsc-border bg-vsc-bg-input px-2 py-1.5 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onPodmanArgsChange(podmanArgs.filter((_, j) => j !== i))}
+                      disabled={disabled}
+                      className="flex-shrink-0 rounded p-1 text-red-400 transition-colors hover:bg-red-400/10 hover:text-red-300 disabled:opacity-50"
+                      title="Remove"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                        <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Extra Instructions */}
