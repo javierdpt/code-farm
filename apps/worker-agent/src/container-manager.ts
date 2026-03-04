@@ -4,8 +4,8 @@ import { randomBytes } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
-import type { ContainerInfo, ContainerCreateRequest, ContainerResources } from '@code-farm/shared';
-import { CONTAINER_IMAGE, PODMAN_LABEL_PREFIX } from '@code-farm/shared';
+import type { ContainerInfo, ContainerCreateRequest, ContainerResources } from '@javierdpt/code-farm-shared';
+import { CONTAINER_IMAGE, PODMAN_LABEL_PREFIX } from '@javierdpt/code-farm-shared';
 import { config } from './config.js';
 
 const execFile = promisify(execFileCb);

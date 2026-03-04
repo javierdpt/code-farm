@@ -21,7 +21,7 @@ COPY packages/claude-md-generator/ packages/claude-md-generator/
 COPY apps/orchestrator/ apps/orchestrator/
 
 # Build everything
-RUN npx turbo build --filter=@code-farm/orchestrator...
+RUN npx turbo build --filter=@javierdpt/code-farm-orchestrator...
 
 # Stage 2: Run
 FROM node:22-alpine AS runner

@@ -20,14 +20,14 @@ import type {
   TerminalOutputMessage,
   TerminalClosedMessage,
   WorkerMessage,
-} from '@code-farm/shared';
+} from '@javierdpt/code-farm-shared';
 import {
   OrchestratorMessageSchema,
   createOpsLog,
   createImageBuildOutput,
   createImageBuildDone,
   createImageBuildError,
-} from '@code-farm/shared';
+} from '@javierdpt/code-farm-shared';
 
 // ---------------------------------------------------------------------------
 // State

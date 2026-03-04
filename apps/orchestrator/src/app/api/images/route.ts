@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateRequestId } from '@code-farm/shared';
+import { generateRequestId } from '@javierdpt/code-farm-shared';
 import { workerRegistry } from '@/core/worker-registry';
 import { wsState } from '@/core/ws-state';
 

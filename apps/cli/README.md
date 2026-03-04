@@ -63,7 +63,7 @@ Logs are prefixed with colored labels (`[orchestrator]`, `[worker]`). Press `Ctr
 
 The CLI is automatically published to GitHub Packages via GitHub Actions.
 
-- **Auto**: Any push to `main` that changes `packages/cli/**` bumps the **patch** version and publishes
+- **Auto**: Any push to `main` that changes `apps/cli/**` bumps the **patch** version and publishes
 - **Manual**: Go to Actions > "Publish CLI" > "Run workflow" > choose **patch**, **minor**, or **major**
 
 Version bump commits are tagged `[skip ci]` to prevent infinite loops.

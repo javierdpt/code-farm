@@ -285,7 +285,7 @@ journalctl -u code-farm-worker -f
 ## Uninstalling the Worker Agent
 
 ```bash
-npm uninstall -g @code-farm/worker-agent
+npm uninstall -g @javierdpt/code-farm-worker-agent
 ```
 
 To also remove the service (if configured):

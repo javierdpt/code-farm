@@ -2,7 +2,7 @@ import WebSocket from 'ws';
 import {
   RECONNECT_BASE_DELAY,
   RECONNECT_MAX_DELAY,
-} from '@code-farm/shared';
+} from '@javierdpt/code-farm-shared';
 
 export interface WSClientEvents {
   onOpen: () => void;

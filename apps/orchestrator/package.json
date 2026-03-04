@@ -1,5 +1,5 @@
 {
-  "name": "@code-farm/orchestrator",
+  "name": "@javierdpt/code-farm-orchestrator",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,9 +10,9 @@
     "clean": "rm -rf .next dist"
   },
   "dependencies": {
-    "@code-farm/claude-md-generator": "*",
-    "@code-farm/shared": "*",
-    "@code-farm/ticket-providers": "*",
+    "@javierdpt/code-farm-claude-md-generator": "*",
+    "@javierdpt/code-farm-shared": "*",
+    "@javierdpt/code-farm-ticket-providers": "*",
     "@monaco-editor/react": "^4.7.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",

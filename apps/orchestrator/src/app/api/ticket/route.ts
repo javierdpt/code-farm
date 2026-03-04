@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   const { url, token } = parsed.data;
 
   try {
-    const { resolveProvider } = await import('@code-farm/ticket-providers');
+    const { resolveProvider } = await import('@javierdpt/code-farm-ticket-providers');
     const provider = resolveProvider(url);
     if (!provider) {
       return NextResponse.json(

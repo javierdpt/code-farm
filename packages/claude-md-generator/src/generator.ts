@@ -1,4 +1,4 @@
-import { NormalizedTicket } from '@code-farm/shared';
+import { NormalizedTicket } from '@javierdpt/code-farm-shared';
 import { defaultTemplate } from './templates/default.js';
 
 export interface GeneratorOptions {

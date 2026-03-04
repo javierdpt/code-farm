@@ -11,8 +11,8 @@ import {
   createTerminalResize,
   createTerminalClose,
   WS_PATHS,
-} from '@code-farm/shared';
-import type { WorkerMessage } from '@code-farm/shared';
+} from '@javierdpt/code-farm-shared';
+import type { WorkerMessage } from '@javierdpt/code-farm-shared';
 import { workerRegistry } from './worker-registry.js';
 import { terminalRelay } from './terminal-relay.js';
 import { wsState } from './ws-state.js';

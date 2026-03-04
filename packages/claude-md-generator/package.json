@@ -1,5 +1,5 @@
 {
-  "name": "@code-farm/claude-md-generator",
+  "name": "@javierdpt/code-farm-claude-md-generator",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -16,7 +16,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@code-farm/shared": "*"
+    "@javierdpt/code-farm-shared": "*"
   },
   "devDependencies": {
     "typescript": "^5.8.0"

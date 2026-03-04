@@ -1,5 +1,5 @@
 import { TicketProvider, ProviderFetchOptions } from './provider.interface.js';
-import { NormalizedTicket } from '@code-farm/shared';
+import { NormalizedTicket } from '@javierdpt/code-farm-shared';
 
 const AZURE_DEVOPS_RE =
   /dev\.azure\.com\/([^/]+)\/([^/]+)\/_workitems\/edit\/(\d+)/;

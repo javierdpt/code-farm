@@ -1,6 +1,6 @@
 // Shared state accessible from both server.ts WS handlers and Next.js route handlers
 import { WebSocket } from 'ws';
-import { ContainerInfo } from '@code-farm/shared';
+import { ContainerInfo } from '@javierdpt/code-farm-shared';
 
 export interface OpsLogEntry {
   timestamp: string;

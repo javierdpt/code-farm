@@ -56,7 +56,7 @@ podman run --rm localhost/claude-code-dev:latest echo "OK"
 ```bash
 # From the repo root
 npm install
-npx turbo build --filter=@code-farm/worker-agent...
+npx turbo build --filter=@javierdpt/code-farm-worker-agent...
 ```
 
 This builds the shared types package and the worker agent.

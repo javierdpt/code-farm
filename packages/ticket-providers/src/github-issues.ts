@@ -1,4 +1,4 @@
-import { NormalizedTicket } from '@code-farm/shared';
+import { NormalizedTicket } from '@javierdpt/code-farm-shared';
 import { TicketProvider, ProviderFetchOptions } from './provider.interface.js';
 
 const GITHUB_ISSUE_RE = /github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/;

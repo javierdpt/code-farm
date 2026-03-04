@@ -1,7 +1,7 @@
 import os from 'node:os';
 import fs from 'node:fs';
-import { HEARTBEAT_INTERVAL } from '@code-farm/shared';
-import type { WorkerHeartbeatMessage } from '@code-farm/shared';
+import { HEARTBEAT_INTERVAL } from '@javierdpt/code-farm-shared';
+import type { WorkerHeartbeatMessage } from '@javierdpt/code-farm-shared';
 
 interface CpuSnapshot {
   idle: number;

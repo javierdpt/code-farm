@@ -1,6 +1,6 @@
 {
   "name": "@javierdpt/code-farm-cli",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "description": "CLI for the Code Farm platform",
   "bin": {
@@ -18,7 +18,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/javierdpt/code-farm.git",
-    "directory": "packages/cli"
+    "directory": "apps/cli"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

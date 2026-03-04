@@ -28,7 +28,7 @@ export ORCHESTRATOR_URL=ws://<orchestrator-ip>:3000/ws/worker WORKER_NAME=my-wor
 curl -X DELETE http://localhost:3000/api/containers/<id>
 
 # 7. Uninstall the worker CLI
-npm uninstall -g @code-farm/worker-agent
+npm uninstall -g @javierdpt/code-farm-worker-agent
 ```
 
 ## Architecture
@@ -117,19 +117,19 @@ code-farm/
 │   │       ├── app/               # Pages + API routes
 │   │       ├── components/        # React components
 │   │       └── lib/               # WS manager, worker registry, relay
-│   └── worker-agent/              # Standalone Node.js agent
-│       ├── Containerfile          # Reference container build
-│       └── src/
-│           ├── index.ts           # Entry point
-│           ├── config.ts          # Environment-based config
-│           ├── ws-client.ts       # WS client with reconnect
-│           ├── heartbeat.ts       # System stats reporter
-│           ├── container-manager.ts  # Podman CLI wrapper
-│           ├── terminal-manager.ts   # PTY session manager
-│           └── repo-setup.ts      # Clone + CLAUDE.md writer
+│   ├── worker-agent/              # Standalone Node.js agent
+│   │   ├── Containerfile          # Reference container build
+│   │   └── src/
+│   │       ├── index.ts           # Entry point
+│   │       ├── config.ts          # Environment-based config
+│   │       ├── ws-client.ts       # WS client with reconnect
+│   │       ├── heartbeat.ts       # System stats reporter
+│   │       ├── container-manager.ts  # Podman CLI wrapper
+│   │       ├── terminal-manager.ts   # PTY session manager
+│   │       └── repo-setup.ts      # Clone + CLAUDE.md writer
+│   └── cli/                       # @javierdpt/code-farm-cli (published to GitHub Packages)
 ├── packages/
 │   ├── shared/                    # Zod schemas, types, constants
-│   ├── cli/                       # @javierdpt/code-farm-cli (published to GitHub Packages)
 │   ├── ticket-providers/          # GitHub Issues (full), stubs for others
 │   └── claude-md-generator/       # Ticket → CLAUDE.md
 ├── containers/
@@ -340,7 +340,7 @@ code-farm-cli start worker         # Worker only (set ORCHESTRATOR_URL for remot
 code-farm-cli build                # Build all packages and apps
 ```
 
-> The CLI auto-publishes to GitHub Packages on every push to `main` that changes `packages/cli/**`. To bump minor/major, use the manual "Publish CLI" workflow dispatch in GitHub Actions.
+> The CLI auto-publishes to GitHub Packages on every push to `main` that changes `apps/cli/**`. To bump minor/major, use the manual "Publish CLI" workflow dispatch in GitHub Actions.
 
 ## Installing the Worker Agent
 
@@ -402,7 +402,7 @@ See the **Setup Guide** in the web UI (`/docs`) for full service configuration e
 ### Uninstalling
 
 ```bash
-npm uninstall -g @code-farm/worker-agent
+npm uninstall -g @javierdpt/code-farm-worker-agent
 ```
 
 ## Multi-Machine Setup

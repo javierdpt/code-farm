@@ -1,4 +1,4 @@
-import { NormalizedTicket } from '@code-farm/shared';
+import { NormalizedTicket } from '@javierdpt/code-farm-shared';
 
 export function defaultTemplate(ticket: NormalizedTicket): string {
   const sections: string[] = [];

@@ -1,4 +1,4 @@
-import { WorkerInfo, WorkerStatus } from '@code-farm/shared';
+import { WorkerInfo, WorkerStatus } from '@javierdpt/code-farm-shared';
 
 class WorkerRegistry {
   private workers = new Map<string, WorkerInfo>();

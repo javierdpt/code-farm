@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateRequestId, createContainerStart } from '@code-farm/shared';
-import type { ContainerInfo } from '@code-farm/shared';
+import { generateRequestId, createContainerStart } from '@javierdpt/code-farm-shared';
+import type { ContainerInfo } from '@javierdpt/code-farm-shared';
 import { wsState } from '@/core/ws-state';
 
 export async function POST(

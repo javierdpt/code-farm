@@ -5,8 +5,8 @@ on:
   push:
     branches: [main]
     paths:
-      - "packages/cli/**"
-      - "!packages/cli/README.md"
+      - "apps/cli/**"
+      - "!apps/cli/README.md"
 
   # Manual trigger with version type override
   workflow_dispatch:
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/cli
+        working-directory: apps/cli
 
     steps:
       - uses: actions/checkout@v4
@@ -71,6 +71,6 @@ jobs:
       - name: Commit version bump
         run: |
           cd ${{ github.workspace }}
-          git add packages/cli/package.json
+          git add apps/cli/package.json
           git commit -m "chore(cli): bump to ${{ env.NEW_VERSION }} [skip ci]"
           git push

@@ -1,5 +1,5 @@
 {
-  "name": "@code-farm/worker-agent",
+  "name": "@javierdpt/code-farm-worker-agent",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -15,7 +15,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@code-farm/shared": "*",
+    "@javierdpt/code-farm-shared": "*",
     "node-pty": "^1.1.0",
     "ws": "^8.18.0"
   },

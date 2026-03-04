@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { getWSState } from '@/core/ws-state';
-import { createImageBuild, generateRequestId } from '@code-farm/shared';
+import { createImageBuild, generateRequestId } from '@javierdpt/code-farm-shared';
 
 export async function POST(req: Request) {
   const body = await req.json();

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { generateRequestId, createContainerCreate } from '@code-farm/shared';
-import type { ContainerInfo } from '@code-farm/shared';
+import { generateRequestId, createContainerCreate } from '@javierdpt/code-farm-shared';
+import type { ContainerInfo } from '@javierdpt/code-farm-shared';
 import { workerRegistry } from '@/core/worker-registry';
 import { wsState } from '@/core/ws-state';
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   if (ticketUrl) {
     try {
       // Dynamic import to handle the case where the package may not be fully built yet
-      const { resolveProvider } = await import('@code-farm/ticket-providers');
+      const { resolveProvider } = await import('@javierdpt/code-farm-ticket-providers');
       const provider = resolveProvider(ticketUrl);
       if (!provider) {
         return NextResponse.json(
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const { generateClaudeMd } = await import('@code-farm/claude-md-generator');
+      const { generateClaudeMd } = await import('@javierdpt/code-farm-claude-md-generator');
       claudeMd = generateClaudeMd(ticket, { extraInstructions });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';

@@ -1,5 +1,5 @@
 import { TicketProvider } from './provider.interface.js';
-import { NormalizedTicket } from '@code-farm/shared';
+import { NormalizedTicket } from '@javierdpt/code-farm-shared';
 
 export class TrelloProvider implements TicketProvider {
   name = 'trello';

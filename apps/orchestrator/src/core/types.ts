@@ -44,4 +44,4 @@ export type {
   OrchestratorMessage,
   TerminalBrowserResizeMessage,
   BrowserTerminalMessage,
-} from '@code-farm/shared';
+} from '@javierdpt/code-farm-shared';

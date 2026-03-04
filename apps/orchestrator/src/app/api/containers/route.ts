@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { generateRequestId, createContainerCreate } from '@code-farm/shared';
-import type { ContainerInfo } from '@code-farm/shared';
+import { generateRequestId, createContainerCreate } from '@javierdpt/code-farm-shared';
+import type { ContainerInfo } from '@javierdpt/code-farm-shared';
 import { workerRegistry } from '@/core/worker-registry';
 import { wsState } from '@/core/ws-state';
 

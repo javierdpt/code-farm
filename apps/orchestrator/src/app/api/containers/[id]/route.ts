@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateRequestId, createContainerRemove } from '@code-farm/shared';
+import { generateRequestId, createContainerRemove } from '@javierdpt/code-farm-shared';
 import { wsState } from '@/core/ws-state';
 
 export async function GET(
