@@ -120,18 +120,25 @@ async function handleMessage(raw: unknown): Promise<void> {
         // Set up the repository inside the container if repoUrl is provided
         if (msg.config.repoUrl) {
           try {
-            await setupRepo(
+            const result = await setupRepo(
               containerManager,
               info.id,
               msg.config.repoUrl,
               msg.config.branch,
-              undefined, // claudeMd is not in the schema; will be added later
+              msg.config.claudeMd,
+              msg.config.gitToken,
             );
+            if (!result.cloned) {
+              containerManager['emitOpsLog']('warn', result.error || 'Repo clone failed', `git clone ${msg.config.repoUrl}`);
+            } else {
+              containerManager['emitOpsLog']('info', `Repo cloned via ${result.method}`, `git clone ${msg.config.repoUrl}`);
+            }
           } catch (repoErr) {
             console.error(
               '[WorkerAgent] Repo setup failed (container still running):',
               repoErr,
             );
+            containerManager['emitOpsLog']('error', `Repo setup failed: ${(repoErr as Error).message}`, `git clone ${msg.config.repoUrl}`);
           }
         }
 

@@ -41,8 +41,9 @@ export default function LaunchPage() {
   const [selectedWorker, setSelectedWorker] = useState('');
   const [extraInstructions, setExtraInstructions] = useState('');
   const [image, setImage] = useState('');
+  const [repoUrl, setRepoUrl] = useState('');
   const [memoryGb, setMemoryGb] = useState(4);
-  const [containerName, setContainerName] = useState(imageShortName(''));
+  const [containerName, setContainerName] = useState('');
   const [podmanArgs, setPodmanArgs] = useState<PodmanArg[]>(DEFAULT_PODMAN_ARGS);
   const [workers, setWorkers] = useState<WorkerInfo[]>([]);
   const [images, setImages] = useState<ImageOption[]>([]);
@@ -91,12 +92,12 @@ export default function LaunchPage() {
   // Track whether user has manually edited the name
   const [nameManuallyEdited, setNameManuallyEdited] = useState(false);
 
-  // Pre-fill container name from image when image changes (unless user edited)
+  // Pre-fill container name from image when image changes (only in empty mode, unless user edited)
   useEffect(() => {
-    if (!nameManuallyEdited) {
+    if (!nameManuallyEdited && launchMode === 'empty') {
       setContainerName(imageShortName(image));
     }
-  }, [image, nameManuallyEdited]);
+  }, [image, nameManuallyEdited, launchMode]);
 
   const handleDetect = useCallback(() => {
     setDetecting(true);
@@ -131,6 +132,7 @@ export default function LaunchPage() {
             ...(containerName.trim() ? { name: containerName.trim() } : {}),
             ...(selectedWorker ? { workerName: selectedWorker } : {}),
             ...(image ? { image } : {}),
+            ...(repoUrl.trim() ? { repoUrl: repoUrl.trim() } : {}),
             memoryMb,
             ...(filteredArgs.length ? { podmanArgs: filteredArgs } : {}),
           }),
@@ -187,6 +189,7 @@ export default function LaunchPage() {
             ...(selectedWorker ? { workerName: selectedWorker } : {}),
             ...(extraInstructions ? { extraInstructions } : {}),
             ...(image ? { image } : {}),
+            ...(repoUrl.trim() ? { repoUrl: repoUrl.trim() } : {}),
             memoryMb,
             ...(token ? { token } : {}),
             ...(filteredArgs.length ? { podmanArgs: filteredArgs } : {}),
@@ -252,7 +255,7 @@ export default function LaunchPage() {
         setPhase('error');
       }
     }
-  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions, image, memoryGb, podmanArgs, detectedProvider]);
+  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions, image, repoUrl, memoryGb, podmanArgs, detectedProvider]);
 
   const isLaunching = phase === 'launching';
   const canLaunch =
@@ -272,7 +275,7 @@ export default function LaunchPage() {
         <div className="flex gap-1 rounded bg-vsc-bg-tertiary p-1">
           <button
             type="button"
-            onClick={() => setLaunchMode('issue')}
+            onClick={() => { setLaunchMode('issue'); setContainerName(''); setNameManuallyEdited(false); }}
             disabled={isLaunching}
             className={`flex-1 rounded px-4 py-1.5 text-sm font-medium transition-colors ${
               launchMode === 'issue'
@@ -284,7 +287,7 @@ export default function LaunchPage() {
           </button>
           <button
             type="button"
-            onClick={() => setLaunchMode('empty')}
+            onClick={() => { setLaunchMode('empty'); setContainerName(imageShortName(image)); setNameManuallyEdited(false); }}
             disabled={isLaunching}
             className={`flex-1 rounded px-4 py-1.5 text-sm font-medium transition-colors ${
               launchMode === 'empty'
@@ -402,6 +405,10 @@ export default function LaunchPage() {
           image={image}
           onImageChange={setImage}
           images={images}
+          repoUrl={repoUrl}
+          onRepoUrlChange={setRepoUrl}
+          launchMode={launchMode}
+          hasTicketUrl={ticketUrl.length > 0}
           memoryGb={memoryGb}
           onMemoryGbChange={setMemoryGb}
           podmanArgs={podmanArgs}

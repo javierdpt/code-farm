@@ -50,3 +50,26 @@ export function truncate(str: string, maxLength: number): string {
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength - 1) + '\u2026';
 }
+
+/**
+ * Parse a container name into structured segments.
+ * Convention: <image>-<provider>-<owner>-<repo>-<id>
+ * Also handles: cf-empty-<hex> and other patterns.
+ */
+export interface ContainerNameParts {
+  image: string;
+  provider?: string;
+  owner?: string;
+  repo?: string;
+  ticketId?: string;
+}
+
+export function parseContainerName(name: string): ContainerNameParts {
+  // Match: <image>-<provider>-<owner>-<repo>-<ticketId>
+  const match = name.match(/^(.+?)-(github|azdo|ticket)-([^-]+)-([^-]+)-(\d+)$/);
+  if (match) {
+    return { image: match[1], provider: match[2], owner: match[3], repo: match[4], ticketId: match[5] };
+  }
+  // Fallback: just the raw name
+  return { image: name };
+}

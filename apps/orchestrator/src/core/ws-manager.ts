@@ -31,16 +31,15 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
     }
 
     case 'container.created': {
-      // Store container in shared state
-      wsState.containers.set(message.container.id, message.container);
-      // Resolve pending request
+      // Store container in shared state, ensuring workerId matches current connection
+      wsState.containers.set(message.container.id, { ...message.container, workerId });
       wsState.resolveRequest(message.requestId, message.container);
       break;
     }
 
     case 'container.started': {
       // Update container in shared state with running status
-      wsState.containers.set(message.container.id, message.container);
+      wsState.containers.set(message.container.id, { ...message.container, workerId });
       wsState.resolveRequest(message.requestId, message.container);
       break;
     }
@@ -48,7 +47,7 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
     case 'container.stopped': {
       // Update container status (keep it in state, don't delete)
       if (message.container) {
-        wsState.containers.set(message.containerId, message.container);
+        wsState.containers.set(message.containerId, { ...message.container, workerId });
       } else {
         const existing = wsState.containers.get(message.containerId);
         if (existing) {
@@ -67,9 +66,9 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
     }
 
     case 'container.list.response': {
-      // Update container state for this worker
+      // Update container state, ensuring workerId matches the current connection
       for (const container of message.containers) {
-        wsState.containers.set(container.id, container);
+        wsState.containers.set(container.id, { ...container, workerId });
       }
       // Resolve pending request
       wsState.resolveRequest(message.requestId, message.containers);
@@ -77,9 +76,18 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
     }
 
     case 'container.list-all.response': {
-      // Update container state for this worker (same as container.list.response)
+      // Build set of current container IDs from this worker
+      const currentIds = new Set(message.containers.map(c => c.id));
+      // Remove stale containers: any container whose workerId matches the current
+      // connection OR whose ID is in the incoming list (handles workerId changes on reconnect)
+      for (const [id, container] of wsState.containers) {
+        if (container.workerId === workerId && !currentIds.has(id)) {
+          wsState.containers.delete(id);
+        }
+      }
+      // Update/add containers, ensuring workerId matches the current connection
       for (const container of message.containers) {
-        wsState.containers.set(container.id, container);
+        wsState.containers.set(container.id, { ...container, workerId });
       }
       // Resolve pending request
       wsState.resolveRequest(message.requestId, message.containers);
@@ -170,9 +178,33 @@ function handleWorkerMessage(workerId: string, message: WorkerMessage): void {
   }
 }
 
+/** Periodically sync container state from all connected workers. */
+function startContainerSync() {
+  const SYNC_INTERVAL = 10_000; // 10 seconds
+  setInterval(() => {
+    for (const [workerId, ws] of wsState.workerSockets) {
+      if (ws.readyState !== WebSocket.OPEN) continue;
+      const requestId = generateRequestId();
+      const msg = createContainerListAll(requestId);
+      // Fire-and-forget: response handled by handleWorkerMessage
+      wsState.pendingRequests.set(requestId, {
+        resolve: () => {},
+        reject: () => {},
+        timer: setTimeout(() => {
+          wsState.pendingRequests.delete(requestId);
+        }, 15000),
+      });
+      ws.send(JSON.stringify(msg));
+    }
+  }, SYNC_INTERVAL);
+}
+
 export function setupWebSocketServer(server: HttpServer) {
   const workerWss = new WebSocketServer({ noServer: true });
   const terminalWss = new WebSocketServer({ noServer: true });
+
+  // Start periodic container state sync
+  startContainerSync();
 
   // Handle HTTP upgrade to WebSocket
   server.on('upgrade', (request, socket, head) => {

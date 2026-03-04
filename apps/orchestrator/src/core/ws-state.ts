@@ -61,6 +61,11 @@ class WSState {
     timeoutMs = 30000,
   ): Promise<unknown> {
     return new Promise((resolve, reject) => {
+      const ws = this.workerSockets.get(workerId);
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        reject(new Error(`Worker ${workerId} not connected`));
+        return;
+      }
       const timer = setTimeout(() => {
         this.pendingRequests.delete(message.requestId);
         reject(new Error('Request timed out'));

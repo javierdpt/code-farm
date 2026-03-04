@@ -46,10 +46,11 @@ export class ContainerManager {
     if (request.name) {
       containerName = request.name;
     } else if (request.ticketUrl) {
-      // Naming: <image-name>-<provider><owner>-<ticketid>
+      // Naming: <image-name>-<provider>-<owner>-<repo>-<ticketid>
       const imageName = image.split('/').pop()?.split(':')[0] ?? 'cf';
-      const { provider, owner, id } = this.parseTicketUrl(request.ticketUrl);
-      containerName = `${imageName}-${provider}${owner}-${id}`;
+      const { provider, owner, repo, id } = this.parseTicketUrl(request.ticketUrl);
+      const repoSlug = repo.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+      containerName = `${imageName}-${provider}-${owner}-${repoSlug}-${id}`;
     } else {
       containerName = `cf-empty-${shortId}`;
     }
@@ -318,18 +319,22 @@ export class ContainerManager {
     if (!trimmed || trimmed === 'null') return [];
 
     const images: unknown[] = JSON.parse(trimmed);
-    return images.map((img) => {
+    const seen = new Set<string>();
+    const result: { id: string; name: string; tag: string; size: number }[] = [];
+    for (const img of images) {
       const obj = img as Record<string, unknown>;
-      const names = (obj.Names ?? obj.names ?? []) as string[];
-      const fullName = names[0] ?? '';
-      const [name = '', tag = 'latest'] = fullName.split(':');
-      return {
-        id: ((obj.Id ?? obj.ID ?? '') as string).substring(0, 12),
-        name,
-        tag,
-        size: (obj.Size ?? obj.size ?? 0) as number,
-      };
-    });
+      const allNames = (obj.Names ?? obj.names ?? []) as string[];
+      const id = ((obj.Id ?? obj.ID ?? '') as string).substring(0, 12);
+      const size = (obj.Size ?? obj.size ?? 0) as number;
+      for (const fullName of allNames) {
+        const [name = '', tag = 'latest'] = fullName.split(':');
+        const key = `${name}:${tag}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push({ id, name, tag, size });
+      }
+    }
+    return result;
   }
 
   /**
@@ -623,17 +628,17 @@ export class ContainerManager {
   /**
    * Parse a ticket URL into provider, owner/account, and ticket ID.
    */
-  private parseTicketUrl(url: string): { provider: string; owner: string; id: string } {
+  private parseTicketUrl(url: string): { provider: string; owner: string; repo: string; id: string } {
     // GitHub: https://github.com/{owner}/{repo}/issues/{number}
-    const gh = url.match(/github\.com\/([^/]+)\/[^/]+\/issues\/(\d+)/);
-    if (gh) return { provider: 'github', owner: gh[1], id: gh[2] };
+    const gh = url.match(/github\.com\/([^/]+)\/([^/]+)\/issues\/(\d+)/);
+    if (gh) return { provider: 'github', owner: gh[1], repo: gh[2], id: gh[3] };
 
     // Azure DevOps: https://dev.azure.com/{org}/{project}/_workitems/edit/{id}
-    const az = url.match(/dev\.azure\.com\/([^/]+)\/[^/]+\/_workitems\/edit\/(\d+)/);
-    if (az) return { provider: 'azdo', owner: az[1], id: az[2] };
+    const az = url.match(/dev\.azure\.com\/([^/]+)\/([^/]+)\/_workitems\/edit\/(\d+)/);
+    if (az) return { provider: 'azdo', owner: az[1], repo: az[2], id: az[3] };
 
     // Fallback: use sanitized URL parts
-    return { provider: 'ticket', owner: '', id: randomBytes(4).toString('hex') };
+    return { provider: 'ticket', owner: '', repo: '', id: randomBytes(4).toString('hex') };
   }
 
   /**

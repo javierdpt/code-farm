@@ -12,6 +12,7 @@ const PodmanArgSchema = z.object({
 
 const LaunchBodySchema = z.object({
   ticketUrl: z.string().url().optional(),
+  repoUrl: z.string().url().optional(),
   name: z.string().min(1).optional(),
   workerName: z.string().min(1).optional(),
   extraInstructions: z.string().optional(),
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { ticketUrl, workerName, extraInstructions, image, memoryMb, token, podmanArgs } = parsed.data;
+  const { ticketUrl, repoUrl: manualRepoUrl, workerName, extraInstructions, image, memoryMb, token, podmanArgs } = parsed.data;
 
   let ticket;
   let claudeMd: string | undefined;
@@ -108,23 +109,26 @@ export async function POST(request: NextRequest) {
     ? {
         ticketUrl: ticket.url,
         ticketTitle: ticket.title,
-        repoUrl: ticket.repoUrl,
+        repoUrl: manualRepoUrl || ticket.repoUrl,
         branch: ticket.branch || `ticket/${ticket.id}`,
         workerName: worker.name,
         ...(image ? { image } : {}),
         ...(memoryMb ? { memoryMb } : {}),
         ...(podmanArgs?.length ? { podmanArgs } : {}),
+        ...(claudeMd ? { claudeMd } : {}),
+        ...(token ? { gitToken: token } : {}),
       }
     : {
         ticketUrl: '',
         ticketTitle: '',
-        repoUrl: '',
+        repoUrl: manualRepoUrl || '',
         branch: '',
         workerName: worker.name,
         ...(parsed.data.name ? { name: parsed.data.name } : {}),
         ...(image ? { image } : {}),
         ...(memoryMb ? { memoryMb } : {}),
         ...(podmanArgs?.length ? { podmanArgs } : {}),
+        ...(token ? { gitToken: token } : {}),
       };
 
   const message = createContainerCreate(requestId, config);

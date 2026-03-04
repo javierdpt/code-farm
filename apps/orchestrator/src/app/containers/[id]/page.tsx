@@ -6,6 +6,7 @@ import { AppShell } from '@/layout/app-shell';
 import { TerminalPanel } from '@/features/terminal/terminal-panel';
 import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
 import { relativeTime, formatBytes } from '@/core/format';
+import { ContainerName } from '@/common/container-name';
 import type { ContainerInfo } from '@/core/types';
 
 const statusConfig: Record<string, { label: string; dotClass: string; textClass: string }> = {
@@ -28,6 +29,7 @@ export default function ContainerDetailPage() {
   const [stopping, setStopping] = useState(false);
   const [removing, setRemoving] = useState(false);
   const [adopting, setAdopting] = useState(false);
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [showFullscreenDialog, setShowFullscreenDialog] = useState(false);
   const [infoExpanded, setInfoExpanded] = useState(false);
   const [adoptExpanded, setAdoptExpanded] = useState(false);
@@ -209,7 +211,7 @@ export default function ContainerDetailPage() {
               >
                 <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-              <h2 className="truncate text-sm font-semibold text-vsc-text-primary">{container.name}</h2>
+              <h2 className="truncate text-sm font-semibold"><ContainerName name={container.name} /></h2>
               <span className={`flex shrink-0 items-center gap-1.5 text-xs ${status.textClass}`}>
                 <span className={`inline-block h-2 w-2 rounded-full ${status.dotClass}`} />
                 {status.label}
@@ -255,7 +257,7 @@ export default function ContainerDetailPage() {
               {(container.status === 'stopped' || container.status === 'running') && (
                 <button
                   type="button"
-                  onClick={handleRemove}
+                  onClick={() => setConfirmRemove(true)}
                   disabled={removing}
                   className="rounded border border-vsc-error/50 px-3 py-1 text-xs text-vsc-error transition-colors hover:bg-vsc-error/10 disabled:opacity-50"
                 >
@@ -448,6 +450,41 @@ export default function ContainerDetailPage() {
         }}
         onCancel={() => setShowFullscreenDialog(false)}
       />
+
+      {/* Remove Confirmation Dialog */}
+      {confirmRemove && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60">
+          <div className="mx-4 max-w-md rounded-lg border border-vsc-border bg-vsc-bg-secondary p-6 shadow-xl">
+            <h2 className="mb-3 text-sm font-semibold text-vsc-error">
+              Remove Container
+            </h2>
+            <p className="mb-4 text-xs leading-relaxed text-vsc-text-secondary">
+              Are you sure you want to delete container{' '}
+              <span className="font-medium text-vsc-text-primary">&quot;{container.name}&quot;</span>?
+              This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmRemove(false)}
+                className="rounded border border-vsc-border px-4 py-1.5 text-xs text-vsc-text-secondary transition-colors hover:bg-vsc-hover hover:text-vsc-text-primary"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setConfirmRemove(false);
+                  handleRemove();
+                }}
+                className="rounded bg-vsc-error px-4 py-1.5 text-xs text-white transition-colors hover:bg-vsc-error/80"
+              >
+                Remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

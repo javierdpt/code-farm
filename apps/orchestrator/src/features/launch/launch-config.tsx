@@ -24,6 +24,10 @@ interface LaunchConfigProps {
   image: string;
   onImageChange: (image: string) => void;
   images: ImageOption[];
+  repoUrl: string;
+  onRepoUrlChange: (url: string) => void;
+  launchMode: 'issue' | 'empty';
+  hasTicketUrl: boolean;
   memoryGb: number;
   onMemoryGbChange: (gb: number) => void;
   podmanArgs: PodmanArg[];
@@ -40,6 +44,10 @@ export function LaunchConfig({
   image,
   onImageChange,
   images,
+  repoUrl,
+  onRepoUrlChange,
+  launchMode,
+  hasTicketUrl,
   memoryGb,
   onMemoryGbChange,
   podmanArgs,
@@ -133,6 +141,40 @@ export function LaunchConfig({
               </svg>
               Create new image
             </button>
+          </div>
+
+          {/* Repository URL */}
+          <div className="space-y-1.5">
+            <label htmlFor="repo-url" className="block text-xs font-medium text-vsc-text-primary">
+              Repository URL
+            </label>
+            <input
+              id="repo-url"
+              type="text"
+              value={repoUrl}
+              onChange={(e) => onRepoUrlChange(e.target.value)}
+              disabled={disabled}
+              placeholder="https://github.com/owner/repo"
+              className="w-full rounded border border-vsc-border bg-vsc-bg-input px-3 py-1.5 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
+            />
+            {launchMode === 'issue' && hasTicketUrl && !repoUrl ? (
+              <p className="text-xs text-vsc-text-secondary">
+                Auto-detected from issue URL. Override here if needed.
+              </p>
+            ) : !repoUrl ? (
+              <p className="flex items-center gap-1 text-xs text-vsc-warning">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M6 1L11 10H1L6 1Z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
+                  <path d="M6 5V7" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+                  <circle cx="6" cy="8.5" r="0.5" fill="currentColor" />
+                </svg>
+                No repository URL — the repo won&apos;t be cloned automatically. You&apos;ll need to clone it manually inside the container.
+              </p>
+            ) : (
+              <p className="text-xs text-vsc-text-secondary">
+                Git repo to clone into the container workspace.
+              </p>
+            )}
           </div>
 
           {/* Memory (RAM) */}

@@ -65,6 +65,8 @@ export const ContainerCreateRequestSchema = z.object({
   name: z.string().min(1).optional(),
   memoryMb: z.number().int().positive().optional(),
   podmanArgs: z.array(PodmanArgSchema).optional(),
+  claudeMd: z.string().optional(),
+  gitToken: z.string().optional(),
 });
 
 export type ContainerCreateRequest = z.infer<typeof ContainerCreateRequestSchema>;

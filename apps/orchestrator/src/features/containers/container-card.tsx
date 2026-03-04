@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { ContainerInfo } from '@/core/types';
 import { relativeTime, truncate, formatBytes } from '@/core/format';
 import { Badge } from '@/common/badge';
+import { ContainerName } from '@/common/container-name';
 
 interface ContainerCardProps {
   container: ContainerInfo;
@@ -30,8 +31,8 @@ export function ContainerCard({ container }: ContainerCardProps) {
     >
       {/* Header: Name + Status */}
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-semibold text-vsc-text-primary">
-          {truncate(container.name, 30)}
+        <span className="text-sm font-semibold">
+          <ContainerName name={container.name} />
         </span>
         <div className="flex items-center gap-2">
           <span className={`flex items-center gap-1.5 text-xs ${status.textClass}`}>
