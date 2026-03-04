@@ -121,7 +121,7 @@ export function Sidebar() {
               height={44}
               className="w-auto"
               priority
-              style={{position: 'relative', height: 44, left: -6}}
+              style={{position: 'relative', height: 38, left: -6}}
             />
             <button
               onClick={() => { sidebarUserCollapsed = true; setCollapsed(true); }}

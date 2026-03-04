@@ -19,7 +19,7 @@ export function ContainerName({ name, className = '' }: ContainerNameProps) {
   }
 
   return (
-    <span className={`inline-flex items-center gap-1 ${className}`}>
+    <span className={`inline-flex flex-wrap items-center gap-x-1 ${className}`}>
       <span className="text-vsc-accent-blue">{parts.image}</span>
       <span className="text-vsc-text-secondary/40">/</span>
       <span className="text-vsc-text-secondary">{providerLabels[parts.provider] ?? parts.provider}</span>

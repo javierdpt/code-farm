@@ -30,11 +30,11 @@ export function ContainerCard({ container }: ContainerCardProps) {
       className="flex w-full cursor-pointer flex-col justify-start rounded border border-vsc-border bg-vsc-bg-secondary/95 p-4 text-left transition-colors hover:border-vsc-accent-blue focus:outline-none focus:ring-1 focus:ring-vsc-accent-blue"
     >
       {/* Header: Name + Status */}
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-semibold">
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <span className="min-w-0 text-sm font-semibold leading-snug">
           <ContainerName name={container.name} />
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <span className={`flex items-center gap-1.5 text-xs ${status.textClass}`}>
             <span className={`inline-block h-2 w-2 rounded-full ${status.dotClass}`} />
             {status.label}

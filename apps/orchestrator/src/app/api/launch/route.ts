@@ -13,6 +13,7 @@ const PodmanArgSchema = z.object({
 const LaunchBodySchema = z.object({
   ticketUrl: z.string().url().optional(),
   repoUrl: z.string().url().optional(),
+  branch: z.string().min(1).optional(),
   name: z.string().min(1).optional(),
   workerName: z.string().min(1).optional(),
   extraInstructions: z.string().optional(),
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { ticketUrl, repoUrl: manualRepoUrl, workerName, extraInstructions, image, memoryMb, token, podmanArgs } = parsed.data;
+  const { ticketUrl, repoUrl: manualRepoUrl, branch: manualBranch, workerName, extraInstructions, image, memoryMb, token, podmanArgs } = parsed.data;
 
   let ticket;
   let claudeMd: string | undefined;
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
         ticketUrl: ticket.url,
         ticketTitle: ticket.title,
         repoUrl: manualRepoUrl || ticket.repoUrl,
-        branch: ticket.branch || `ticket/${ticket.id}`,
+        branch: manualBranch || ticket.branch || `feature/issue-${ticket.id}`,
         workerName: worker.name,
         ...(image ? { image } : {}),
         ...(memoryMb ? { memoryMb } : {}),
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
         ticketUrl: '',
         ticketTitle: '',
         repoUrl: manualRepoUrl || '',
-        branch: '',
+        branch: manualBranch || '',
         workerName: worker.name,
         ...(parsed.data.name ? { name: parsed.data.name } : {}),
         ...(image ? { image } : {}),
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (ticket) {
-    const branchName = ticket.branch || `ticket/${ticket.id}`;
+    const branchName = ticket.branch || `feature/issue-${ticket.id}`;
     return NextResponse.json(
       {
         container,

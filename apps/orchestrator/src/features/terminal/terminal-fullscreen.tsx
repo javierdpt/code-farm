@@ -88,8 +88,8 @@ export function TerminalFullscreen({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ width: '100vw', height: '100vh', backgroundColor: 'rgba(30, 30, 30, 0.88)' }}
+      className="fixed inset-0 z-50 flex h-dvh flex-col"
+      style={{ backgroundColor: 'rgba(30, 30, 30, 0.88)' }}
     >
       {/* Floating toolbar */}
       <div
@@ -100,7 +100,7 @@ export function TerminalFullscreen({
         }`}
         onMouseEnter={resetHideTimer}
       >
-        <div className="flex items-center justify-between px-4 py-2 bg-vsc-bg-secondary/90 backdrop-blur-sm border-b border-vsc-border">
+        <div className="flex items-center justify-between px-4 py-2 pt-[calc(env(safe-area-inset-top)+0.5rem)] bg-vsc-bg-secondary/90 backdrop-blur-sm border-b border-vsc-border">
           <div className="flex items-center gap-3">
             <button
               type="button"

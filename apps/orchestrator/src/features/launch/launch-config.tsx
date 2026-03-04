@@ -26,6 +26,8 @@ interface LaunchConfigProps {
   images: ImageOption[];
   repoUrl: string;
   onRepoUrlChange: (url: string) => void;
+  branch: string;
+  onBranchChange: (branch: string) => void;
   launchMode: 'issue' | 'empty';
   hasTicketUrl: boolean;
   memoryGb: number;
@@ -46,6 +48,8 @@ export function LaunchConfig({
   images,
   repoUrl,
   onRepoUrlChange,
+  branch,
+  onBranchChange,
   launchMode,
   hasTicketUrl,
   memoryGb,
@@ -175,6 +179,27 @@ export function LaunchConfig({
                 Git repo to clone into the container workspace.
               </p>
             )}
+          </div>
+
+          {/* Branch */}
+          <div className="space-y-1.5">
+            <label htmlFor="branch-name" className="block text-xs font-medium text-vsc-text-primary">
+              Branch
+            </label>
+            <input
+              id="branch-name"
+              type="text"
+              value={branch}
+              onChange={(e) => onBranchChange(e.target.value)}
+              disabled={disabled}
+              placeholder={launchMode === 'issue' ? 'feature/issue-<id>' : 'main'}
+              className="w-full rounded border border-vsc-border bg-vsc-bg-input px-3 py-1.5 text-sm text-vsc-text-primary placeholder:text-vsc-text-secondary focus:border-vsc-accent-blue focus:outline-none disabled:opacity-50"
+            />
+            <p className="text-xs text-vsc-text-secondary">
+              {launchMode === 'issue' && hasTicketUrl && !branch
+                ? 'Auto-generated as feature/issue-<id>. Override here if needed.'
+                : 'Branch to checkout after cloning. Leave empty for default.'}
+            </p>
           </div>
 
           {/* Memory (RAM) */}

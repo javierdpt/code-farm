@@ -42,6 +42,7 @@ export default function LaunchPage() {
   const [extraInstructions, setExtraInstructions] = useState('');
   const [image, setImage] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
+  const [branch, setBranch] = useState('');
   const [memoryGb, setMemoryGb] = useState(4);
   const [containerName, setContainerName] = useState('');
   const [podmanArgs, setPodmanArgs] = useState<PodmanArg[]>(DEFAULT_PODMAN_ARGS);
@@ -133,6 +134,7 @@ export default function LaunchPage() {
             ...(selectedWorker ? { workerName: selectedWorker } : {}),
             ...(image ? { image } : {}),
             ...(repoUrl.trim() ? { repoUrl: repoUrl.trim() } : {}),
+            ...(branch.trim() ? { branch: branch.trim() } : {}),
             memoryMb,
             ...(filteredArgs.length ? { podmanArgs: filteredArgs } : {}),
           }),
@@ -190,6 +192,7 @@ export default function LaunchPage() {
             ...(extraInstructions ? { extraInstructions } : {}),
             ...(image ? { image } : {}),
             ...(repoUrl.trim() ? { repoUrl: repoUrl.trim() } : {}),
+            ...(branch.trim() ? { branch: branch.trim() } : {}),
             memoryMb,
             ...(token ? { token } : {}),
             ...(filteredArgs.length ? { podmanArgs: filteredArgs } : {}),
@@ -255,7 +258,7 @@ export default function LaunchPage() {
         setPhase('error');
       }
     }
-  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions, image, repoUrl, memoryGb, podmanArgs, detectedProvider]);
+  }, [launchMode, ticketUrl, containerName, selectedWorker, extraInstructions, image, repoUrl, branch, memoryGb, podmanArgs, detectedProvider]);
 
   const isLaunching = phase === 'launching';
   const canLaunch =
@@ -407,6 +410,8 @@ export default function LaunchPage() {
           images={images}
           repoUrl={repoUrl}
           onRepoUrlChange={setRepoUrl}
+          branch={branch}
+          onBranchChange={setBranch}
           launchMode={launchMode}
           hasTicketUrl={ticketUrl.length > 0}
           memoryGb={memoryGb}
