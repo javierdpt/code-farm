@@ -1,15 +1,27 @@
 {
-  "name": "@code-farm/cli",
+  "name": "@javierdpt/code-farm-cli",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
+  "description": "CLI for the Code Farm platform",
   "bin": {
     "code-farm-cli": "dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/cli.ts",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/javierdpt/code-farm.git",
+    "directory": "packages/cli"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
     "commander": "^13.1.0"
