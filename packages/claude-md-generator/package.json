@@ -1,6 +1,6 @@
 {
   "name": "@javierdpt/code-farm-claude-md-generator",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,7 +27,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@javierdpt/code-farm-shared": "^0.3.7"
+    "@javierdpt/code-farm-shared": "^0.3.8"
   },
   "devDependencies": {
     "typescript": "^5.8.0"

@@ -1,6 +1,6 @@
 {
   "name": "@javierdpt/code-farm-worker-agent",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -26,7 +26,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@javierdpt/code-farm-shared": "^0.3.7",
+    "@javierdpt/code-farm-shared": "^0.3.8",
     "node-pty": "^1.1.0",
     "ws": "^8.18.0"
   },
