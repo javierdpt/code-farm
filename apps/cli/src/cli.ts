@@ -4,25 +4,17 @@ import { program } from "commander";
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { createRequire } from "node:module";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const pkg = JSON.parse(readFileSync(join(__dirname, "..", "package.json"), "utf-8"));
 
-function findMonorepoRoot(): string {
-  let dir = process.cwd();
-  while (dir !== "/") {
-    try {
-      const pkg = JSON.parse(readFileSync(join(dir, "package.json"), "utf-8"));
-      if (pkg.name === "@javierdpt/code-farm") return dir;
-    } catch {
-      // no package.json here, keep walking
-    }
-    dir = dirname(dir);
-  }
-  throw new Error(
-    "Could not find code-farm monorepo root. Are you inside the repo?"
-  );
+const require = createRequire(import.meta.url);
+
+function resolvePackageDir(packageName: string): string {
+  const pkgJson = require.resolve(`${packageName}/package.json`);
+  return dirname(pkgJson);
 }
 
 const PREFIX_COLORS = {
@@ -54,17 +46,20 @@ function prefixStream(
   });
 }
 
-function spawnComponent(
-  root: string,
-  workspace: string,
+function spawnPackage(
+  packageName: string,
+  entryPoint: string,
   label: string,
-  color: string
+  color: string,
+  extraEnv?: Record<string, string>
 ): ChildProcess {
-  const child = spawn("npm", ["run", "dev", "-w", workspace], {
-    cwd: root,
+  const pkgDir = resolvePackageDir(packageName);
+  const script = join(pkgDir, entryPoint);
+
+  const child = spawn("node", [script], {
+    cwd: pkgDir,
     stdio: ["ignore", "pipe", "pipe"],
-    env: { ...process.env, FORCE_COLOR: "1" },
-    shell: true,
+    env: { ...process.env, FORCE_COLOR: "1", ...extraEnv },
   });
 
   prefixStream(child.stdout!, label, color, process.stdout);
@@ -85,9 +80,8 @@ program
 program
   .command("start")
   .argument("[component]", "orchestrator, worker, or omit for both")
-  .description("Start Code Farm components in dev mode")
+  .description("Start Code Farm components")
   .action((component?: string) => {
-    const root = findMonorepoRoot();
     const children: ChildProcess[] = [];
 
     const startOrchestrator = !component || component === "orchestrator";
@@ -106,11 +100,12 @@ program
 
     if (startOrchestrator) {
       children.push(
-        spawnComponent(
-          root,
-          "apps/orchestrator",
+        spawnPackage(
+          "@javierdpt/code-farm-orchestrator",
+          "dist/server.js",
           "code-farm.orchestrator",
-          PREFIX_COLORS.orchestrator
+          PREFIX_COLORS.orchestrator,
+          { NODE_ENV: "production" }
         )
       );
     }
@@ -129,9 +124,9 @@ program
       }
 
       children.push(
-        spawnComponent(
-          root,
-          "apps/worker-agent",
+        spawnPackage(
+          "@javierdpt/code-farm-worker-agent",
+          "dist/index.js",
           "code-farm.worker",
           PREFIX_COLORS.worker
         )
@@ -147,21 +142,6 @@ program
 
     process.on("SIGINT", shutdown);
     process.on("SIGTERM", shutdown);
-  });
-
-program
-  .command("build")
-  .description("Build all Code Farm packages and apps")
-  .action(() => {
-    const root = findMonorepoRoot();
-    const child = spawn("npm", ["run", "build"], {
-      cwd: root,
-      stdio: "inherit",
-      shell: true,
-    });
-    child.on("exit", (code) => {
-      process.exit(code ?? 1);
-    });
   });
 
 program.parse();

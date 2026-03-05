@@ -1,18 +1,32 @@
 {
   "name": "@javierdpt/code-farm-orchestrator",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.3.0",
   "type": "module",
+  "files": [
+    "dist",
+    ".next",
+    "public"
+  ],
   "scripts": {
     "dev": "tsx server.ts",
     "build": "next build",
+    "build:server": "tsc -p tsconfig.server.json",
     "start": "NODE_ENV=production node dist/server.js",
-    "clean": "rm -rf .next dist"
+    "clean": "rm -rf .next dist",
+    "prepublishOnly": "npm run build && npm run build:server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/javierdpt/code-farm.git",
+    "directory": "apps/orchestrator"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@javierdpt/code-farm-claude-md-generator": "*",
-    "@javierdpt/code-farm-shared": "*",
-    "@javierdpt/code-farm-ticket-providers": "*",
+    "@javierdpt/code-farm-claude-md-generator": "^0.3.0",
+    "@javierdpt/code-farm-shared": "^0.3.0",
+    "@javierdpt/code-farm-ticket-providers": "^0.3.0",
     "@monaco-editor/react": "^4.7.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
