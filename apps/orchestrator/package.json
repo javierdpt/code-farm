@@ -13,7 +13,7 @@
     "build:server": "tsc -p tsconfig.server.json",
     "start": "NODE_ENV=production node dist/server.js",
     "clean": "rm -rf .next dist",
-    "prepublishOnly": "npm run build && npm run build:server"
+    "prepublishOnly": "npm run clean && npm run build && npm run build:server"
   },
   "repository": {
     "type": "git",

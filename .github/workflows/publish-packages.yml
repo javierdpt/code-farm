@@ -1,0 +1,76 @@
+name: Publish Packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/**"
+      - "apps/**"
+      - "!**/README.md"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+
+      - name: Install dependencies
+        run: npm install --ignore-scripts
+
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Build worker-agent
+        run: npm run build -w apps/worker-agent
+
+      - name: Build orchestrator (Next.js + server)
+        run: |
+          npm run clean -w apps/orchestrator
+          npm run build -w apps/orchestrator
+          npm run build:server -w apps/orchestrator
+
+      - name: Build CLI
+        run: npm run build -w apps/cli
+
+      # Publish in dependency order — skip versions that already exist
+      - name: Publish shared
+        run: npm publish -w packages/shared || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish ticket-providers
+        run: npm publish -w packages/ticket-providers || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish claude-md-generator
+        run: npm publish -w packages/claude-md-generator || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish worker-agent
+        run: npm publish -w apps/worker-agent || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish orchestrator
+        run: npm publish -w apps/orchestrator || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish CLI
+        run: npm publish -w apps/cli || true
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
