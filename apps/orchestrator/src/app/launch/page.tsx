@@ -21,8 +21,6 @@ function imageShortName(img: string): string {
 function detectProviderFromUrl(url: string): string | null {
   if (/github\.com\/.+\/.+\/issues\/\d+/.test(url)) return 'GitHub Issues';
   if (/dev\.azure\.com/.test(url) || /visualstudio\.com/.test(url)) return 'Azure DevOps';
-  if (/trello\.com\/c\//.test(url)) return 'Trello';
-  if (/monday\.com/.test(url)) return 'Monday.com';
   return null;
 }
 

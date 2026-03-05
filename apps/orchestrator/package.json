@@ -1,6 +1,6 @@
 {
   "name": "@javierdpt/code-farm-orchestrator",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "type": "module",
   "files": [
     "dist",
@@ -25,9 +25,9 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@javierdpt/code-farm-claude-md-generator": "^0.3.3",
-    "@javierdpt/code-farm-shared": "^0.3.3",
-    "@javierdpt/code-farm-ticket-providers": "^0.3.3",
+    "@javierdpt/code-farm-claude-md-generator": "^0.3.4",
+    "@javierdpt/code-farm-shared": "^0.3.4",
+    "@javierdpt/code-farm-ticket-providers": "^0.3.4",
     "@monaco-editor/react": "^4.7.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",

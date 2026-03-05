@@ -25,7 +25,7 @@ interface TicketInputProps {
   onOpenConfig?: () => void;
 }
 
-const SUPPORTED_PROVIDERS = ['GitHub Issues', 'Azure DevOps', 'Trello', 'Monday.com'];
+const SUPPORTED_PROVIDERS = ['GitHub Issues', 'Azure DevOps'];
 
 export function TicketInput({
   value,

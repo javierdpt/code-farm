@@ -385,7 +385,7 @@ export default function ContainerDetailPage() {
                       type="url"
                       value={adoptForm.ticketUrl}
                       onChange={(e) => setAdoptForm((f) => ({ ...f, ticketUrl: e.target.value }))}
-                      placeholder="https://linear.app/team/ISSUE-123"
+                      placeholder="https://github.com/owner/repo/issues/123"
                       className="rounded border border-vsc-border bg-vsc-bg-tertiary px-3 py-1.5 text-vsc-text-primary placeholder:text-vsc-text-secondary/50 focus:border-vsc-accent-blue focus:outline-none"
                     />
                   </label>
