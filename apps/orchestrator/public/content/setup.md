@@ -99,7 +99,7 @@ On each worker machine, build the Podman image that gets launched for each ticke
 
 ```bash
 podman build -t localhost/claude-code-dev:latest \
-  -f containers/dev-workspace/Containerfile .
+  -f apps/orchestrator/containers/claude-code-dev/Containerfile .
 ```
 
 This image includes Claude Code, git, tmux, neovim, and GitHub CLI.

@@ -3,8 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 export async function GET() {
-  // containers/ dir is at monorepo root
-  const containersDir = path.join(process.cwd(), '../../containers');
+  const containersDir = path.join(process.cwd(), 'containers');
 
   try {
     const entries = fs.readdirSync(containersDir, { withFileTypes: true });

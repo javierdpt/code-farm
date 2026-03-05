@@ -8,6 +8,11 @@ import { OpsLogProvider } from '@/features/ops-log/ops-log-provider';
 import { OpsLogPanel } from '@/features/ops-log/ops-log-panel';
 import { TerminalTabBar } from '@/features/terminal/terminal-tab-bar';
 
+// Module-level cache so remounts across navigations don't flash zeros
+let cachedWorkerCount = 0;
+let cachedContainerCount = 0;
+let cachedConnected = false;
+
 interface AppShellProps {
   children: React.ReactNode;
   title?: string;
@@ -25,9 +30,9 @@ export function AppShell({
   containerCount: containerCountProp,
   connected: connectedProp,
 }: AppShellProps) {
-  const [selfWorkerCount, setSelfWorkerCount] = useState(0);
-  const [selfContainerCount, setSelfContainerCount] = useState(0);
-  const [selfConnected, setSelfConnected] = useState(false);
+  const [selfWorkerCount, setSelfWorkerCount] = useState(cachedWorkerCount);
+  const [selfContainerCount, setSelfContainerCount] = useState(cachedContainerCount);
+  const [selfConnected, setSelfConnected] = useState(cachedConnected);
 
   const fetchCounts = useCallback(async () => {
     try {
@@ -38,12 +43,15 @@ export function AppShell({
       if (workersRes.ok) {
         const data = await workersRes.json();
         const online = (data.workers ?? []).filter((w: { status: string }) => w.status === 'online');
+        cachedWorkerCount = online.length;
+        cachedConnected = online.length > 0;
         setSelfWorkerCount(online.length);
         setSelfConnected(online.length > 0);
       }
       if (containersRes.ok) {
         const data = await containersRes.json();
-        setSelfContainerCount((data.containers ?? []).length);
+        cachedContainerCount = (data.containers ?? []).length;
+        setSelfContainerCount(cachedContainerCount);
       }
     } catch {
       // ignore fetch errors

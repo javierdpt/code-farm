@@ -4,7 +4,7 @@ import path from 'path';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
-  const containerfile = path.join(process.cwd(), '../../containers', name, 'Containerfile');
+  const containerfile = path.join(process.cwd(), 'containers', name, 'Containerfile');
 
   try {
     const dockerfile = fs.readFileSync(containerfile, 'utf-8');

@@ -61,7 +61,8 @@ const navItems = [
   },
   {
     label: 'Docs',
-    href: '/docs',
+    href: '/docs/about',
+    activePrefix: '/docs',
     icon: (
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M6 2H14C15.1 2 16 2.9 16 4V16C16 17.1 15.1 18 14 18H6C4.9 18 4 17.1 4 16V4C4 2.9 4.9 2 6 2Z" stroke="currentColor" strokeWidth="1.5" />
@@ -160,9 +161,10 @@ export function Sidebar() {
       <nav className="flex-1 py-2">
         <ul className="space-y-0.5 px-2">
           {navItems.map((item) => {
-            const isActive = item.href === '/'
+            const prefix = item.activePrefix ?? item.href;
+            const isActive = prefix === '/'
               ? pathname === '/'
-              : pathname === item.href || pathname.startsWith(item.href + '/');
+              : pathname === prefix || pathname.startsWith(prefix + '/');
             return (
               <li key={item.href}>
                 <Link

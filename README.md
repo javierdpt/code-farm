@@ -9,7 +9,7 @@ A self-hosted web platform that orchestrates Claude Code development containers 
 npm install && npm run build:packages
 
 # 2. Build the dev container image (on every worker machine)
-podman build -t localhost/claude-code-dev:latest -f containers/dev-workspace/Containerfile .
+podman build -t localhost/claude-code-dev:latest -f apps/orchestrator/containers/claude-code-dev/Containerfile .
 
 # 3. Start orchestrator + local worker
 npm start                          # → http://localhost:3000
@@ -70,7 +70,7 @@ This is the Podman image that gets launched for each ticket. It includes Claude 
 
 ```bash
 podman build -t localhost/claude-code-dev:latest \
-  -f containers/dev-workspace/Containerfile .
+  -f apps/orchestrator/containers/claude-code-dev/Containerfile .
 ```
 
 ### 3. Start the orchestrator
@@ -410,7 +410,7 @@ npm uninstall -g @javierdpt/code-farm-worker-agent
 1. Deploy the orchestrator on a machine reachable by all workers
 2. On each worker machine:
    - Install Node.js 22+ and Podman
-   - Build the dev workspace image: `podman build -t localhost/claude-code-dev:latest -f containers/dev-workspace/Containerfile .`
+   - Build the dev workspace image: `podman build -t localhost/claude-code-dev:latest -f apps/orchestrator/containers/claude-code-dev/Containerfile .`
    - Clone this repo and install the worker agent: `cd code-farm && npm install && npm run install:worker`
    - Start the agent: `ORCHESTRATOR_URL=ws://orchestrator-ip:3000/ws/worker WORKER_NAME=machine-name worker-agent`
 3. Workers connect outbound — no inbound ports needed on worker machines

@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   let dockerfile: string;
 
   if (template) {
-    const containerfile = path.join(process.cwd(), '../../containers', template, 'Containerfile');
+    const containerfile = path.join(process.cwd(), 'containers', template, 'Containerfile');
     try {
       dockerfile = fs.readFileSync(containerfile, 'utf-8');
     } catch {
