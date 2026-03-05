@@ -92,7 +92,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
   return (
     <div
       className={session.isExpanded ? 'fixed inset-0 z-40 flex flex-col' : ''}
-      style={session.isExpanded ? { backgroundColor: 'rgba(30, 30, 30, 0.95)' } : { display: 'none' }}
+      style={session.isExpanded ? { backgroundColor: 'rgba(0, 0, 0, 0.95)' } : { display: 'none' }}
     >
       {/* Toolbar — only when expanded */}
       {session.isExpanded && (

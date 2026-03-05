@@ -125,7 +125,7 @@ export function useTerminal(
     if (!mountedRef.current || gen !== connectGenRef.current) return;
 
     const theme = transparent
-      ? { ...THEME, background: 'rgba(30, 30, 30, 0.85)' }
+      ? { ...THEME, background: 'rgba(0, 0, 0, 0.85)' }
       : THEME;
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;

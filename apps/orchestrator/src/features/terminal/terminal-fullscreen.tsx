@@ -162,7 +162,7 @@ export function TerminalFullscreen({
     <div
       className={`fixed left-0 right-0 flex flex-col ${isEmbedded ? '' : 'z-50'}`}
       style={{
-        backgroundColor: 'rgba(30, 30, 30, 0.88)',
+        backgroundColor: 'rgba(0, 0, 0, 0.88)',
         top: viewport ? `${viewport.offsetTop}px` : 0,
         height: viewport ? `${viewport.height}px` : '100dvh',
       }}
