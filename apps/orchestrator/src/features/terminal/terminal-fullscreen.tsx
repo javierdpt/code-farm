@@ -236,6 +236,17 @@ export function TerminalFullscreen({
           ref={terminalRef}
           className="absolute inset-0"
         />
+        {/* Logo watermark — sits above terminal, ignores pointer events */}
+        <div
+          className="absolute inset-0 z-[1] pointer-events-none"
+          style={{
+            backgroundImage: 'url(/images/logo.png)',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: '50%',
+            opacity: 0.06,
+          }}
+        />
 
         {isReconnecting && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">
