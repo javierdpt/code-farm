@@ -1,6 +1,6 @@
 {
   "name": "@javierdpt/code-farm-ticket-providers",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,7 +27,7 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@javierdpt/code-farm-shared": "^0.3.6"
+    "@javierdpt/code-farm-shared": "^0.3.7"
   },
   "devDependencies": {
     "typescript": "^5.8.0",
