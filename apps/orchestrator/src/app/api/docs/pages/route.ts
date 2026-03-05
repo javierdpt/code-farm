@@ -2,7 +2,7 @@ import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 
 export async function GET() {
-  const contentDir = join(process.cwd(), 'src/content');
+  const contentDir = join(process.cwd(), 'public/content');
   const files = await readdir(contentDir);
   const pages = files
     .filter((f) => f.endsWith('.md'))

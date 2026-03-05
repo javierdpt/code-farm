@@ -5,4 +5,10 @@
         "activityBar.background": "#63342c",
         "statusBar.background": "#63342c"
     },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.expand": false,
+    "explorer.fileNesting.patterns": {
+        "*package.json": "package-lock.json|npm-shrinkwrap.json",
+        "*README.md": "CHANGELOG.md|README.local.md",
+    },
 }

@@ -1,6 +1,6 @@
 {
   "name": "@javierdpt/code-farm-cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "type": "module",
   "description": "CLI for the Code Farm platform",
   "bin": {
@@ -24,8 +24,8 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@javierdpt/code-farm-orchestrator": "^0.3.0",
-    "@javierdpt/code-farm-worker-agent": "^0.3.0",
+    "@javierdpt/code-farm-orchestrator": "^0.3.1",
+    "@javierdpt/code-farm-worker-agent": "^0.3.1",
     "commander": "^13.1.0"
   },
   "devDependencies": {

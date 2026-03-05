@@ -3,7 +3,7 @@ import { join } from 'node:path';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const contentDir = join(process.cwd(), 'src/content');
+  const contentDir = join(process.cwd(), 'public/content');
 
   // Find the file case-insensitively
   const files = await readdir(contentDir);
