@@ -73,7 +73,7 @@ RUN echo 'set -g default-terminal "tmux-256color"' >> ~/.tmux.conf \
 # Uses the "atomic" theme (clean, informative, works well with Nerd Fonts)
 # You can browse themes later: ls ~/.cache/oh-my-posh/themes/
 RUN echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc \
-    && echo 'eval "$(oh-my-posh init bash --config ~/.cache/oh-my-posh/themes/atomic.omp.json)"' >> ~/.bashrc
+    && echo 'eval "$(oh-my-posh init bash)"' >> ~/.bashrc
 
 # === Bash history settings ===
 # Increase history size, avoid duplicates, and append (don't overwrite) history
