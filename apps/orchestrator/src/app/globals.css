@@ -96,6 +96,28 @@ body {
   color: var(--text-primary);
 }
 
+/* ─── xterm: hide scrollbar, fill container ─── */
+.xterm,
+.xterm-viewport,
+.xterm-screen {
+  width: 100% !important;
+  height: 100% !important;
+}
+.xterm-viewport {
+  scrollbar-width: none !important;
+  overflow-y: auto !important;
+}
+.xterm-viewport::-webkit-scrollbar {
+  width: 0 !important;
+  display: none !important;
+}
+/* Fullscreen terminal: solid black behind character-cell gaps */
+.terminal-fullscreen .xterm,
+.terminal-fullscreen .xterm-viewport,
+.terminal-fullscreen .xterm-screen {
+  background-color: #000000 !important;
+}
+
 /* ─── Scrollbar Styling ─── */
 * {
   scrollbar-width: thin;

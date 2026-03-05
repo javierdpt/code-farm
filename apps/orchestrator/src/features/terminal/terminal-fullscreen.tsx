@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { useTerminal, MAX_RECONNECT_ATTEMPTS } from '@/features/terminal/use-terminal';
+import { useVisualViewport } from '@/hooks/use-visual-viewport';
 import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
 import { StatusFooter } from '@/layout/status-footer';
 
@@ -35,6 +36,7 @@ export function TerminalFullscreen({
   containerCount = 0,
 }: TerminalFullscreenProps) {
   const { embedded: isEmbedded, ready: isReady } = useIsEmbedded();
+  const viewport = useVisualViewport();
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
     containerId,
@@ -44,6 +46,23 @@ export function TerminalFullscreen({
 
   const isReconnecting = reconnectAttempt > 0 && reconnectAttempt <= MAX_RECONNECT_ATTEMPTS && !isConnected;
   const isDisconnected = !isConnected && !isConnecting;
+
+  // Prevent iOS page scroll when keyboard is open
+  useEffect(() => {
+    if (!viewport?.keyboardOpen) return;
+    const preventScroll = (e: TouchEvent) => {
+      // Allow scrolling inside the terminal (xterm handles its own scroll)
+      const target = e.target as HTMLElement;
+      if (target.closest('.xterm')) return;
+      e.preventDefault();
+    };
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    // Also force scroll to 0 on mount
+    window.scrollTo(0, 0);
+    return () => {
+      document.removeEventListener('touchmove', preventScroll);
+    };
+  }, [viewport?.keyboardOpen]);
 
   // When embedded in iframe: post connection status to parent
   useEffect(() => {
@@ -125,7 +144,7 @@ export function TerminalFullscreen({
     if (!isReady || isEmbedded) return;
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
-    }, 320);
+    }, 0);
     return () => clearTimeout(timer);
   }, [toolbarVisible, isReady, isEmbedded]);
 
@@ -141,13 +160,17 @@ export function TerminalFullscreen({
   // Toolbar and status bar are conditionally rendered based on isEmbedded.
   return (
     <div
-      className={`fixed inset-0 flex h-dvh flex-col ${isEmbedded ? '' : 'z-50'}`}
-      style={{ backgroundColor: 'rgba(30, 30, 30, 0.88)' }}
+      className={`fixed left-0 right-0 flex flex-col ${isEmbedded ? '' : 'z-50'}`}
+      style={{
+        backgroundColor: 'rgba(30, 30, 30, 0.88)',
+        top: viewport ? `${viewport.offsetTop}px` : 0,
+        height: viewport ? `${viewport.height}px` : '100dvh',
+      }}
     >
       {/* In-flow toolbar — standalone only, pushes content down when visible */}
       {isReady && !isEmbedded && (
         <div
-          className="shrink-0 z-10 overflow-hidden transition-[max-height] duration-300"
+          className="shrink-0 z-10 overflow-hidden"
           style={{ maxHeight: toolbarVisible ? '60px' : '0' }}
           onMouseMove={cancelHideTimer}
           onMouseLeave={hideToolbar}
@@ -195,10 +218,11 @@ export function TerminalFullscreen({
                 type="button"
                 onClick={handleBack}
                 className="flex items-center gap-1.5 px-2.5 py-1 text-sm text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
-                title="Exit Fullscreen"
+                title="Close"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="5" y1="18" x2="19" y2="18" />
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             </div>
@@ -207,7 +231,7 @@ export function TerminalFullscreen({
       )}
 
       {/* Terminal — always in same tree position */}
-      <div className="relative z-0 flex-1 w-full">
+      <div className="terminal-fullscreen relative z-0 flex-1 w-full" style={{ backgroundColor: '#000' }}>
         <div
           ref={terminalRef}
           className="absolute inset-0"

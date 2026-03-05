@@ -76,7 +76,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
     if (!session.isExpanded || !iframeRef.current?.contentWindow) return;
     const timer = setTimeout(() => {
       iframeRef.current?.contentWindow?.postMessage({ type: 'terminal-visible' }, '*');
-    }, 320);
+    }, 0);
     return () => clearTimeout(timer);
   }, [toolbarVisible, session.isExpanded]);
 
@@ -107,7 +107,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
 
           {/* In-flow auto-hide toolbar — pushes content down when visible */}
           <div
-            className="shrink-0 z-10 overflow-hidden transition-[max-height] duration-300"
+            className="shrink-0 z-10 overflow-hidden"
             style={{ maxHeight: toolbarVisible ? '60px' : '0' }}
             onMouseMove={cancelHideTimer}
             onMouseLeave={hideToolbar}

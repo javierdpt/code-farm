@@ -146,8 +146,25 @@ export function useTerminal(
 
     terminal.open(el);
 
+    /** Center the character grid by shifting .xterm-screen so the
+     *  sub-cell-size remainder gap is distributed evenly on all sides. */
+    const centerGrid = () => {
+      const screenEl = el.querySelector('.xterm-screen') as HTMLElement | null;
+      const rowsEl = el.querySelector('.xterm-rows') as HTMLElement | null;
+      const viewportEl = el.querySelector('.xterm-viewport') as HTMLElement | null;
+      if (!screenEl || !rowsEl?.firstElementChild || !viewportEl) return;
+      const vw = viewportEl.clientWidth;
+      const vh = viewportEl.clientHeight;
+      const gw = (rowsEl.firstElementChild as HTMLElement).getBoundingClientRect().width;
+      const gh = rowsEl.getBoundingClientRect().height;
+      const dx = Math.floor((vw - gw) / 2);
+      const dy = Math.floor((vh - gh) / 2);
+      screenEl.style.transform = dx || dy ? `translate(${dx}px, ${dy}px)` : '';
+    };
+
     try {
       fitAddon.fit();
+      centerGrid();
     } catch {
       // FitAddon can throw if the element has zero size; ignore on first pass
     }
@@ -249,6 +266,7 @@ export function useTerminal(
       terminalInstanceRef.current.options.fontSize = e.matches ? 10 : 14;
       try {
         fitAddonRef.current?.fit();
+        centerGrid();
       } catch { /* ignore */ }
     };
     mobileMq.addEventListener('change', handleMobileChange);
@@ -257,6 +275,7 @@ export function useTerminal(
       if (!fitAddonRef.current || !terminalInstanceRef.current) return;
       try {
         fitAddonRef.current.fit();
+        centerGrid();
       } catch {
         // Ignore fit errors (e.g. zero-size element)
       }
@@ -282,12 +301,32 @@ export function useTerminal(
       resizeObserver.observe(el);
     }
 
+    // visualViewport listener — catches iOS keyboard open/close that window.resize misses
+    const vv = window.visualViewport;
+    let handleViewportResize: (() => void) | null = null;
+    if (vv) {
+      let vpTimer: ReturnType<typeof setTimeout> | null = null;
+      handleViewportResize = () => {
+        // Slight delay to let iOS finish keyboard animation and container resize
+        if (vpTimer) clearTimeout(vpTimer);
+        vpTimer = setTimeout(() => {
+          try { fitAddonRef.current?.fit(); centerGrid(); } catch { /* ignore */ }
+        }, 150);
+      };
+      vv.addEventListener('resize', handleViewportResize);
+      vv.addEventListener('scroll', handleViewportResize);
+    }
+
     const currentTerminal = terminalInstanceRef.current;
     const originalDispose = currentTerminal.dispose.bind(currentTerminal);
     currentTerminal.dispose = () => {
       window.removeEventListener('resize', handleResize);
       mobileMq.removeEventListener('change', handleMobileChange);
       resizeObserver?.disconnect();
+      if (vv && handleViewportResize) {
+        vv.removeEventListener('resize', handleViewportResize);
+        vv.removeEventListener('scroll', handleViewportResize);
+      }
       originalDispose();
     };
   }, [containerId, workerId, transparent, terminalRef, cleanup]);

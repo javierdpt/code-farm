@@ -96,7 +96,6 @@ export function TerminalPanel({
         <div
           ref={terminalRef}
           className="absolute inset-0"
-          style={{ padding: 4 }}
         />
 
         {/* Reconnecting overlay */}
