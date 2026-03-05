@@ -92,7 +92,7 @@ export function TerminalPanel({
       </div>
 
       {/* Terminal container */}
-      <div className="flex-1 relative" style={{ minHeight: 0 }}>
+      <div className="flex-1 relative" style={{ minHeight: 0, backgroundColor: '#000' }}>
         <div
           ref={terminalRef}
           className="absolute inset-0"
