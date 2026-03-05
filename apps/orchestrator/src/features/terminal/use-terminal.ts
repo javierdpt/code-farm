@@ -158,7 +158,7 @@ export function useTerminal(
       const gw = (rowsEl.firstElementChild as HTMLElement).getBoundingClientRect().width;
       const gh = rowsEl.getBoundingClientRect().height;
       const dx = Math.floor((vw - gw) / 2);
-      const dy = vh - gh; // push all vertical gap to top; bottom sits flush against status footer
+      const dy = Math.floor((vh - gh) / 2);
       screenEl.style.transform = dx || dy ? `translate(${dx}px, ${dy}px)` : '';
     };
 
