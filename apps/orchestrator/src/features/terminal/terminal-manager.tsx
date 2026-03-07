@@ -125,24 +125,15 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const expandTerminal = useCallback((containerId: string) => {
-    setTerminals((prev) => {
-      const target = prev.find((t) => t.containerId === containerId);
-      if (target?.restoreAsDetached) {
-        // Restore to detached floating — don't collapse other terminals
-        return prev.map((t) =>
-          t.containerId === containerId
-            ? { ...t, isDetached: true, isExpanded: false, restoreAsDetached: false }
-            : t
-        );
-      }
-      // Restore to fullscreen — collapse all others
-      return prev.map((t) => ({
+    setTerminals((prev) =>
+      // Always restore to fullscreen — collapse all others
+      prev.map((t) => ({
         ...t,
         isExpanded: t.containerId === containerId,
         isDetached: t.containerId === containerId ? false : t.isDetached,
         restoreAsDetached: t.containerId === containerId ? false : t.restoreAsDetached,
-      }));
-    });
+      }))
+    );
   }, []);
 
   const minimizeTerminal = useCallback((containerId: string) => {
