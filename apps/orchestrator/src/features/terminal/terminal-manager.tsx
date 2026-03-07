@@ -2,6 +2,13 @@
 
 import { createContext, useContext, useCallback, useState, useEffect, type ReactNode } from 'react';
 
+export interface DetachedPosition {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface TerminalSession {
   id: string;
   containerId: string;
@@ -10,6 +17,8 @@ export interface TerminalSession {
   workerName: string;
   status: 'connecting' | 'connected' | 'disconnected';
   isExpanded: boolean;
+  isDetached: boolean;
+  detachedPos: DetachedPosition;
 }
 
 interface OpenTerminalInfo {
@@ -25,6 +34,9 @@ interface TerminalManagerContextValue {
   closeTerminal: (containerId: string) => void;
   expandTerminal: (containerId: string) => void;
   minimizeTerminal: (containerId: string) => void;
+  detachTerminal: (containerId: string) => void;
+  attachTerminal: (containerId: string) => void;
+  updateDetachedPos: (containerId: string, pos: DetachedPosition) => void;
 }
 
 const TerminalManagerContext = createContext<TerminalManagerContextValue | null>(null);
@@ -33,6 +45,11 @@ export function useTerminalManager() {
   const ctx = useContext(TerminalManagerContext);
   if (!ctx) throw new Error('useTerminalManager must be used within TerminalManagerProvider');
   return ctx;
+}
+
+function defaultDetachedPos(index: number): DetachedPosition {
+  const offset = index * 24;
+  return { x: 80 + offset, y: 80 + offset, w: 860, h: 540 };
 }
 
 export function TerminalManagerProvider({ children }: { children: ReactNode }) {
@@ -60,6 +77,8 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
           workerName: info.workerName,
           status: 'connecting',
           isExpanded: true,
+          isDetached: false,
+          detachedPos: defaultDetachedPos(prev.length),
         },
       ];
     });
@@ -81,7 +100,33 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
   const minimizeTerminal = useCallback((containerId: string) => {
     setTerminals((prev) =>
       prev.map((t) =>
-        t.containerId === containerId ? { ...t, isExpanded: false } : t
+        t.containerId === containerId ? { ...t, isExpanded: false, isDetached: false } : t
+      )
+    );
+  }, []);
+
+  const detachTerminal = useCallback((containerId: string) => {
+    setTerminals((prev) =>
+      prev.map((t) =>
+        t.containerId === containerId ? { ...t, isExpanded: false, isDetached: true } : t
+      )
+    );
+  }, []);
+
+  const attachTerminal = useCallback((containerId: string) => {
+    setTerminals((prev) =>
+      prev.map((t) =>
+        t.containerId === containerId
+          ? { ...t, isDetached: false, isExpanded: true }
+          : { ...t, isExpanded: false }
+      )
+    );
+  }, []);
+
+  const updateDetachedPos = useCallback((containerId: string, pos: DetachedPosition) => {
+    setTerminals((prev) =>
+      prev.map((t) =>
+        t.containerId === containerId ? { ...t, detachedPos: pos } : t
       )
     );
   }, []);
@@ -117,7 +162,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
 
   return (
     <TerminalManagerContext.Provider
-      value={{ terminals, openTerminal, closeTerminal, expandTerminal, minimizeTerminal }}
+      value={{ terminals, openTerminal, closeTerminal, expandTerminal, minimizeTerminal, detachTerminal, attachTerminal, updateDetachedPos }}
     >
       {children}
     </TerminalManagerContext.Provider>

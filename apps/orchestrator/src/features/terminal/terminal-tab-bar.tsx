@@ -6,7 +6,7 @@ import { useTerminalManager } from './terminal-manager';
 export function TerminalTabBar() {
   const { terminals, expandTerminal, closeTerminal } = useTerminalManager();
 
-  const minimized = terminals.filter((t) => !t.isExpanded);
+  const minimized = terminals.filter((t) => !t.isExpanded && !t.isDetached);
   if (minimized.length === 0) return null;
 
   return (
@@ -21,7 +21,7 @@ export function TerminalTabBar() {
 }
 
 function TerminalTab({ session }: { session: { id: string; containerId: string; workerId: string; containerName: string; status: string } }) {
-  const { expandTerminal, closeTerminal } = useTerminalManager();
+  const { expandTerminal, closeTerminal, detachTerminal } = useTerminalManager();
 
   const handleExpand = useCallback(() => {
     expandTerminal(session.containerId);
@@ -31,6 +31,11 @@ function TerminalTab({ session }: { session: { id: string; containerId: string; 
     e.stopPropagation();
     closeTerminal(session.containerId);
   }, [closeTerminal, session.containerId]);
+
+  const handleDetach = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    detachTerminal(session.containerId);
+  }, [detachTerminal, session.containerId]);
 
   const handleOpenInNewTab = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -68,13 +73,27 @@ function TerminalTab({ session }: { session: { id: string; containerId: string; 
       {/* Expand icon */}
       <span
         className="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
-        title="Expand"
+        title="Expand fullscreen"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="15 3 21 3 21 9" />
           <polyline points="9 21 3 21 3 15" />
           <line x1="21" y1="3" x2="14" y2="10" />
           <line x1="3" y1="21" x2="10" y2="14" />
+        </svg>
+      </span>
+
+      {/* Detach (pop out) icon */}
+      <span
+        role="button"
+        tabIndex={-1}
+        onClick={handleDetach}
+        className="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+        title="Pop out as floating window"
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M9 3v18M3 9h6" />
         </svg>
       </span>
 
