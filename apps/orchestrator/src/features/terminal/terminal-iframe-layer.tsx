@@ -11,7 +11,7 @@ const MIN_H = 240;
 type ResizeEdge = 'n' | 's' | 'e' | 'w' | 'nw' | 'ne' | 'sw' | 'se';
 
 function TerminalOverlay({ session }: { session: TerminalSession }) {
-  const { minimizeTerminal, closeTerminal, detachTerminal, attachTerminal, updateDetachedPos } = useTerminalManager();
+  const { minimizeTerminal, closeTerminal, detachTerminal, attachTerminal, updateDetachedPos, bringToFront } = useTerminalManager();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // ── Toolbar auto-hide (fullscreen mode only) ──────────────────────────────
@@ -202,8 +202,9 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
     return (
       <div
         ref={floatRef}
-        className="fixed z-50 flex flex-col rounded-lg overflow-hidden shadow-2xl border border-vsc-border"
-        style={{ left: x, top: y, width: w, height: h, backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(3px)' }}
+        className="fixed flex flex-col rounded-lg overflow-hidden shadow-2xl border border-vsc-border"
+        style={{ left: x, top: y, width: w, height: h, zIndex: 50 + session.zIndex, backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(3px)' }}
+        onPointerDown={() => bringToFront(session.containerId)}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
@@ -280,6 +281,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
             background: 'transparent',
             opacity: session.status === 'connected' ? 1 : 0,
           }}
+          onFocus={() => bringToFront(session.containerId)}
           allowTransparency={true}
           title={`Terminal: ${session.containerName}`}
         />

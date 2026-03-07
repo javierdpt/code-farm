@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useCallback, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useCallback, useState, useEffect, useRef, type ReactNode } from 'react';
 
 export interface DetachedPosition {
   x: number;
@@ -20,6 +20,7 @@ export interface TerminalSession {
   isDetached: boolean;
   detachedPos: DetachedPosition;
   restoreAsDetached: boolean;
+  zIndex: number;
 }
 
 interface OpenTerminalInfo {
@@ -39,6 +40,7 @@ interface TerminalManagerContextValue {
   detachTerminal: (containerId: string) => void;
   attachTerminal: (containerId: string) => void;
   updateDetachedPos: (containerId: string, pos: DetachedPosition) => void;
+  bringToFront: (containerId: string) => void;
 }
 
 const TerminalManagerContext = createContext<TerminalManagerContextValue | null>(null);
@@ -56,6 +58,7 @@ function defaultDetachedPos(index: number): DetachedPosition {
 
 export function TerminalManagerProvider({ children }: { children: ReactNode }) {
   const [terminals, setTerminals] = useState<TerminalSession[]>([]);
+  const zIndexCounterRef = useRef(1);
 
   const openTerminal = useCallback((info: OpenTerminalInfo) => {
     setTerminals((prev) => {
@@ -82,6 +85,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
           isDetached: false,
           detachedPos: defaultDetachedPos(prev.length),
           restoreAsDetached: false,
+          zIndex: zIndexCounterRef.current++,
         },
       ];
     });
@@ -110,6 +114,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
           isDetached: true,
           detachedPos: defaultDetachedPos(prev.length),
           restoreAsDetached: false,
+          zIndex: zIndexCounterRef.current++,
         },
       ];
     });
@@ -176,6 +181,15 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const bringToFront = useCallback((containerId: string) => {
+    const nextZ = zIndexCounterRef.current++;
+    setTerminals((prev) =>
+      prev.map((t) =>
+        t.containerId === containerId ? { ...t, zIndex: nextZ } : t
+      )
+    );
+  }, []);
+
   // Listen for postMessage status updates from iframes
   useEffect(() => {
     const handler = (e: MessageEvent) => {
@@ -207,7 +221,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
 
   return (
     <TerminalManagerContext.Provider
-      value={{ terminals, openTerminal, openTerminalDetached, closeTerminal, expandTerminal, minimizeTerminal, detachTerminal, attachTerminal, updateDetachedPos }}
+      value={{ terminals, openTerminal, openTerminalDetached, closeTerminal, expandTerminal, minimizeTerminal, detachTerminal, attachTerminal, updateDetachedPos, bringToFront }}
     >
       {children}
     </TerminalManagerContext.Provider>
