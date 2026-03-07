@@ -38,7 +38,7 @@ export function TerminalFullscreen({
   const { embedded: isEmbedded, ready: isReady } = useIsEmbedded();
   const viewport = useVisualViewport();
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect, focus } = useTerminal(terminalRef, {
     containerId,
     workerId,
     transparent: true,
@@ -94,16 +94,15 @@ export function TerminalFullscreen({
   const showToolbar = useCallback(() => {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = undefined;
     }
     setToolbarVisible(true);
-    hideTimerRef.current = setTimeout(() => {
-      setToolbarVisible(false);
-    }, 1500);
   }, []);
 
   const cancelHideTimer = useCallback(() => {
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = undefined;
     }
   }, []);
 
@@ -111,7 +110,9 @@ export function TerminalFullscreen({
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
     }
-    setToolbarVisible(false);
+    hideTimerRef.current = setTimeout(() => {
+      setToolbarVisible(false);
+    }, 2500);
   }, []);
 
   const handleMouseMove = useCallback(
@@ -127,14 +128,15 @@ export function TerminalFullscreen({
     // Toolbar auto-hide only for standalone mode
     if (!isReady || isEmbedded) return;
     document.addEventListener('mousemove', handleMouseMove);
-    const timer = setTimeout(() => {
+    // Store in hideTimerRef so cancelHideTimer / showToolbar can cancel it
+    hideTimerRef.current = setTimeout(() => {
       setToolbarVisible(false);
-    }, 1500);
+    }, 2500);
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      clearTimeout(timer);
       if (hideTimerRef.current) {
         clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = undefined;
       }
     };
   }, [isReady, isEmbedded, handleMouseMove]);
@@ -235,6 +237,7 @@ export function TerminalFullscreen({
         <div
           ref={terminalRef}
           className="absolute inset-0"
+          onClick={focus}
         />
         {/* Logo watermark — sits above terminal, ignores pointer events */}
         <div

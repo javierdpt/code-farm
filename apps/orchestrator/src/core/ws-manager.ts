@@ -373,33 +373,41 @@ export function setupWebSocketServer(server: HttpServer) {
       const bridge = terminalRelay.getBridgeByBrowser(ws);
       if (!bridge || !bridge.sessionId) return;
 
-      // Check if data is plain text (terminal input) or JSON (control message)
+      // Check if data is plain text (terminal input) or JSON (control message).
+      // Only attempt JSON parse when the data looks like an object (starts with '{').
+      // This prevents digit keystrokes like '1' from being silently swallowed —
+      // JSON.parse('1') succeeds (returns a number), matching no control message
+      // type and dropping the input entirely.
       const dataStr = rawData.toString();
-      let parsed: { type?: string; cols?: number; rows?: number; data?: string } | undefined;
-      try {
-        parsed = JSON.parse(dataStr);
-      } catch {
-        // Not JSON - treat as raw terminal input (base64 encode it)
-        const inputMsg = createTerminalInput(
-          bridge.sessionId,
-          Buffer.from(dataStr).toString('base64'),
-        );
-        wsState.sendToWorker(bridge.workerId, inputMsg);
-        return;
+      if (dataStr.startsWith('{')) {
+        let parsed: { type?: string; cols?: number; rows?: number; data?: string } | undefined;
+        try {
+          parsed = JSON.parse(dataStr);
+        } catch {
+          // Malformed JSON starting with '{' — fall through to raw input below
+        }
+        if (parsed?.type === 'terminal.browser.resize') {
+          const resizeMsg = createTerminalResize(
+            bridge.sessionId,
+            parsed.cols || 80,
+            parsed.rows || 24,
+          );
+          wsState.sendToWorker(bridge.workerId, resizeMsg);
+          return;
+        } else if (parsed?.type === 'terminal.input' && parsed.data) {
+          // Browser may send structured input messages too
+          const inputMsg = createTerminalInput(bridge.sessionId, parsed.data);
+          wsState.sendToWorker(bridge.workerId, inputMsg);
+          return;
+        }
       }
 
-      if (parsed && parsed.type === 'terminal.browser.resize') {
-        const resizeMsg = createTerminalResize(
-          bridge.sessionId,
-          parsed.cols || 80,
-          parsed.rows || 24,
-        );
-        wsState.sendToWorker(bridge.workerId, resizeMsg);
-      } else if (parsed && parsed.type === 'terminal.input' && parsed.data) {
-        // Browser may send structured input messages too
-        const inputMsg = createTerminalInput(bridge.sessionId, parsed.data);
-        wsState.sendToWorker(bridge.workerId, inputMsg);
-      }
+      // Raw terminal input (base64 encode it)
+      const inputMsg = createTerminalInput(
+        bridge.sessionId,
+        Buffer.from(dataStr).toString('base64'),
+      );
+      wsState.sendToWorker(bridge.workerId, inputMsg);
     });
 
     // Handle browser disconnect

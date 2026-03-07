@@ -45,18 +45,20 @@ export class TerminalManager {
     }
     env.TERM = 'xterm-256color';
 
-    const isWindows = process.platform === 'win32';
-    const shell = isWindows ? '/bin/bash' : '/bin/bash';
+    // Use a deterministic tmux session name so reconnecting after a host
+    // sleep/wake reattaches to the same shell instead of starting fresh.
+    // tmux `new-session -A` creates the session on first connect and attaches
+    // on subsequent connects.  Session names are scoped per container so
+    // multiple containers each get their own independent session.
+    const sessionName = `cf-${containerId.substring(0, 12)}`;
     const ptyProcess = pty.spawn(
       config.podmanPath,
-      ['exec', '-it', containerId, shell],
+      ['exec', '-it', containerId, 'tmux', 'new-session', '-A', '-s', sessionName],
       {
         name: 'xterm-256color',
         cols,
         rows,
         env,
-        // On Windows, node-pty needs useConpty
-        ...(isWindows ? { useConpty: true } : {}),
       },
     );
 

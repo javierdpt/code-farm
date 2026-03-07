@@ -19,7 +19,7 @@ export function TerminalPanel({
   onFullscreen,
 }: TerminalPanelProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
-  const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect } = useTerminal(terminalRef, {
+  const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect, focus } = useTerminal(terminalRef, {
     containerId,
     workerId,
     transparent,
@@ -96,6 +96,7 @@ export function TerminalPanel({
         <div
           ref={terminalRef}
           className="absolute inset-0"
+          onClick={focus}
         />
 
         {/* Reconnecting overlay */}

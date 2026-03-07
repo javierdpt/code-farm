@@ -12,18 +12,23 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const showToolbar = useCallback(() => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = undefined;
+    }
     setToolbarVisible(true);
-    hideTimerRef.current = setTimeout(() => setToolbarVisible(false), 1500);
   }, []);
 
   const cancelHideTimer = useCallback(() => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = undefined;
+    }
   }, []);
 
   const hideToolbar = useCallback(() => {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    setToolbarVisible(false);
+    hideTimerRef.current = setTimeout(() => setToolbarVisible(false), 2500);
   }, []);
 
   const handleMouseMove = useCallback(
@@ -38,11 +43,13 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
     // Reset toolbar visibility when expanding
     setToolbarVisible(true);
     document.addEventListener('mousemove', handleMouseMove);
-    const timer = setTimeout(() => setToolbarVisible(false), 1500);
+    hideTimerRef.current = setTimeout(() => setToolbarVisible(false), 2500);
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      clearTimeout(timer);
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = undefined;
+      }
     };
   }, [session.isExpanded, handleMouseMove]);
 
@@ -102,6 +109,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
             <div
               className="absolute top-0 left-0 right-0 z-20 h-[18px]"
               onMouseEnter={showToolbar}
+              onClick={() => iframeRef.current?.focus()}
             />
           )}
 

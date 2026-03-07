@@ -18,11 +18,12 @@ interface UseTerminalReturn {
   reconnectAttempt: number;
   disconnect: () => void;
   reconnect: () => void;
+  focus: () => void;
 }
 
-export const MAX_RECONNECT_ATTEMPTS = 10;
+export const MAX_RECONNECT_ATTEMPTS = 50;
 const RECONNECT_BASE_DELAY = 1000;
-const RECONNECT_MAX_DELAY = 15000;
+const RECONNECT_MAX_DELAY = 60000;
 
 const THEME = {
   background: '#1e1e1e',
@@ -146,6 +147,44 @@ export function useTerminal(
 
     terminal.open(el);
 
+    // Ensure the terminal captures keyboard input immediately after mount.
+    // Without this, some browsers (especially macOS) drop certain keys (e.g. digits)
+    // until the user clicks inside the terminal.
+    terminal.focus();
+
+    // Custom key handler: enforce platform copy/paste shortcuts.
+    // On macOS users can remap copy/paste to Ctrl+C / Ctrl+V (instead of Cmd+C/V).
+    // xterm.js would normally intercept Ctrl+C as SIGINT and Ctrl+V as literal \x16.
+    terminal.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      if (event.type !== 'keydown') return true;
+      const isCtrlOnly = event.ctrlKey && !event.metaKey && !event.altKey;
+
+      // Ctrl+C — copy selected text; fall through to SIGINT if nothing is selected
+      if (isCtrlOnly && event.key === 'c') {
+        const selection = terminal.getSelection();
+        if (selection) {
+          navigator.clipboard.writeText(selection).catch(() => {
+            try { document.execCommand('copy'); } catch { /* ignore */ }
+          });
+          terminal.clearSelection();
+          return false; // prevent sending \x03 to the PTY
+        }
+        return true; // no selection → send SIGINT as normal
+      }
+
+      // Ctrl+V — paste from clipboard
+      if (isCtrlOnly && event.key === 'v') {
+        navigator.clipboard.readText().then((text) => {
+          if (text && wsRef.current?.readyState === WebSocket.OPEN && sessionReadyRef.current) {
+            wsRef.current.send(text);
+          }
+        }).catch(() => { /* clipboard access denied */ });
+        return false; // prevent \x16 from reaching the PTY
+      }
+
+      return true; // pass everything else through unchanged
+    });
+
     /** Center the character grid by shifting .xterm-screen so the
      *  sub-cell-size remainder gap is distributed evenly on all sides. */
     const centerGrid = () => {
@@ -229,8 +268,9 @@ export function useTerminal(
 
     ws.onclose = () => {
       if (!mountedRef.current) return;
-      sessionReadyRef.current = false;
-      setIsConnected(false);
+      // Dispose the terminal immediately so xterm.js event listeners don't
+      // interfere with the reconnect overlay buttons while we wait to retry.
+      cleanup();
       setIsConnecting(false);
       onDisconnectedRef.current?.();
 
@@ -331,6 +371,10 @@ export function useTerminal(
     };
   }, [containerId, workerId, transparent, terminalRef, cleanup]);
 
+  const focus = useCallback(() => {
+    terminalInstanceRef.current?.focus();
+  }, []);
+
   const disconnect = useCallback(() => {
     intentionalRef.current = true;
     if (reconnectTimerRef.current) {
@@ -356,20 +400,38 @@ export function useTerminal(
     connect();
   }, [connect]);
 
-  // Connect on mount
+  // Connect on mount; also reconnect when the tab becomes visible again or the
+  // network comes back online (covers machine-sleep / network-drop scenarios).
   useEffect(() => {
     mountedRef.current = true;
     connect();
 
+    const tryAutoReconnect = () => {
+      if (!mountedRef.current || intentionalRef.current) return;
+      // Only reconnect if the WebSocket is genuinely closed
+      const ws = wsRef.current;
+      if (ws && ws.readyState !== WebSocket.CLOSED && ws.readyState !== WebSocket.CLOSING) return;
+      reconnect();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') tryAutoReconnect();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('online', tryAutoReconnect);
+
     return () => {
       mountedRef.current = false;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('online', tryAutoReconnect);
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
         reconnectTimerRef.current = null;
       }
       cleanup();
     };
-  }, [connect, cleanup]);
+  }, [connect, cleanup, reconnect]);
 
-  return { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect };
+  return { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect, focus };
 }
