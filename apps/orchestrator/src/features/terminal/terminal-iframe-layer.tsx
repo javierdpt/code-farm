@@ -173,6 +173,18 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
     return () => clearTimeout(timer);
   }, [toolbarVisible, session.isExpanded]);
 
+  // ── Bring to front when iframe content is clicked (via postMessage) ────────
+  useEffect(() => {
+    if (!session.isDetached) return;
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'terminal-focus-request' && e.data.containerId === session.containerId) {
+        bringToFront(session.containerId);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [session.isDetached, session.containerId, bringToFront]);
+
   // ── Actions ────────────────────────────────────────────────────────────────
   const handleMinimize = useCallback(() => { minimizeTerminal(session.containerId); }, [minimizeTerminal, session.containerId]);
   const handleClose = useCallback(() => { closeTerminal(session.containerId); }, [closeTerminal, session.containerId]);
@@ -196,108 +208,99 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
       : session.status === 'connecting' ? 'Connecting...'
         : 'Disconnected';
 
-  // ── Detached floating window ───────────────────────────────────────────────
+  // ── Determine mode ──────────────────────────────────────────────────────────
+  const isHidden = !session.isExpanded && !session.isDetached;
+
+  // ── Compute root wrapper style per mode ────────────────────────────────────
+  let rootClassName: string;
+  let rootStyle: React.CSSProperties;
+
   if (session.isDetached) {
     const { x, y, w, h } = session.detachedPos;
-    return (
-      <div
-        ref={floatRef}
-        className="fixed flex flex-col rounded-lg overflow-hidden shadow-2xl border border-vsc-border"
-        style={{ left: x, top: y, width: w, height: h, zIndex: 50 + session.zIndex, backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(3px)' }}
-        onPointerDown={() => bringToFront(session.containerId)}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-      >
-        {/* Resize handles — 8 directions */}
-        {/* Corners */}
-        <div className="absolute top-0 left-0 w-3 h-3 z-20 cursor-nw-resize" onPointerDown={(e) => startResize(e, 'nw')} />
-        <div className="absolute top-0 right-0 w-3 h-3 z-20 cursor-ne-resize" onPointerDown={(e) => startResize(e, 'ne')} />
-        <div className="absolute bottom-0 left-0 w-3 h-3 z-20 cursor-sw-resize" onPointerDown={(e) => startResize(e, 'sw')} />
-        <div className="absolute bottom-0 right-0 w-3 h-3 z-20 cursor-se-resize" onPointerDown={(e) => startResize(e, 'se')} />
-        {/* Edges */}
-        <div className="absolute top-0 left-3 right-3 h-1 z-20 cursor-n-resize" onPointerDown={(e) => startResize(e, 'n')} />
-        <div className="absolute bottom-0 left-3 right-3 h-1 z-20 cursor-s-resize" onPointerDown={(e) => startResize(e, 's')} />
-        <div className="absolute top-3 bottom-3 left-0 w-1 z-20 cursor-w-resize" onPointerDown={(e) => startResize(e, 'w')} />
-        <div className="absolute top-3 bottom-3 right-0 w-1 z-20 cursor-e-resize" onPointerDown={(e) => startResize(e, 'e')} />
-
-        {/* Title bar — drag handle */}
-        <div
-          className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-vsc-bg-secondary/90 backdrop-blur-sm border-b border-vsc-border cursor-grab active:cursor-grabbing select-none"
-          onPointerDown={startDrag}
-        >
-          <div className="flex items-center gap-2">
-            <span className={`inline-block w-2 h-2 rounded-full ${statusDotClass}`} />
-            <span className="text-sm text-vsc-text-primary font-medium truncate max-w-48">
-              {session.containerName || session.containerId.slice(0, 12)}
-            </span>
-            <span className="text-xs text-vsc-text-secondary">{statusLabel}</span>
-          </div>
-
-          <div className="flex items-center gap-0.5" onPointerDown={(e) => e.stopPropagation()}>
-            {/* Attach (back to fullscreen) */}
-            <button type="button" onClick={handleAttach}
-              className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
-              title="Expand fullscreen">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
-                <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
-              </svg>
-            </button>
-            {/* Open in new tab */}
-            <button type="button" onClick={handleOpenInNewTab}
-              className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
-              title="Open in new tab">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-            </button>
-            {/* Minimize */}
-            <button type="button" onClick={handleMinimize}
-              className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
-              title="Minimize">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="18" x2="19" y2="18" />
-              </svg>
-            </button>
-            {/* Close */}
-            <button type="button" onClick={handleClose}
-              className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-error hover:bg-vsc-hover rounded transition-colors"
-              title="Close">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* iframe — hidden until connected to avoid dark background flash */}
-        <iframe
-          ref={iframeRef}
-          src={`/terminal/${session.containerId}?worker=${session.workerId}&detached=true`}
-          className="flex-1 w-full border-0 transition-opacity duration-150"
-          style={{
-            pointerEvents: isInteracting ? 'none' : 'auto',
-            background: 'transparent',
-            opacity: session.status === 'connected' ? 1 : 0,
-          }}
-          onFocus={() => bringToFront(session.containerId)}
-          allowTransparency={true}
-          title={`Terminal: ${session.containerName}`}
-        />
-      </div>
-    );
+    rootClassName = 'fixed flex flex-col rounded-lg overflow-hidden shadow-2xl border border-vsc-border';
+    rootStyle = { left: x, top: y, width: w, height: h, zIndex: 50 + session.zIndex, backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(3px)' };
+  } else if (session.isExpanded) {
+    rootClassName = 'fixed inset-0 z-40 flex flex-col';
+    rootStyle = { backgroundColor: 'rgba(0, 0, 0, 0.95)' };
+  } else {
+    rootClassName = 'fixed';
+    rootStyle = { width: 0, height: 0, overflow: 'hidden', opacity: 0, pointerEvents: 'none' };
   }
 
-  // ── Fullscreen overlay ─────────────────────────────────────────────────────
   return (
     <div
-      className={session.isExpanded ? 'fixed inset-0 z-40 flex flex-col' : ''}
-      style={session.isExpanded ? { backgroundColor: 'rgba(0, 0, 0, 0.95)' } : { display: 'none' }}
+      ref={floatRef}
+      className={rootClassName}
+      style={rootStyle}
+      onPointerDown={session.isDetached ? () => bringToFront(session.containerId) : undefined}
+      onPointerMove={session.isDetached ? onPointerMove : undefined}
+      onPointerUp={session.isDetached ? onPointerUp : undefined}
     >
+      {/* ── Detached chrome ─────────────────────────────────────────────────── */}
+      {session.isDetached && (
+        <>
+          {/* Resize handles — 8 directions */}
+          <div className="absolute top-0 left-0 w-3 h-3 z-20 cursor-nw-resize" onPointerDown={(e) => startResize(e, 'nw')} />
+          <div className="absolute top-0 right-0 w-3 h-3 z-20 cursor-ne-resize" onPointerDown={(e) => startResize(e, 'ne')} />
+          <div className="absolute bottom-0 left-0 w-3 h-3 z-20 cursor-sw-resize" onPointerDown={(e) => startResize(e, 'sw')} />
+          <div className="absolute bottom-0 right-0 w-3 h-3 z-20 cursor-se-resize" onPointerDown={(e) => startResize(e, 'se')} />
+          <div className="absolute top-0 left-3 right-3 h-1 z-20 cursor-n-resize" onPointerDown={(e) => startResize(e, 'n')} />
+          <div className="absolute bottom-0 left-3 right-3 h-1 z-20 cursor-s-resize" onPointerDown={(e) => startResize(e, 's')} />
+          <div className="absolute top-3 bottom-3 left-0 w-1 z-20 cursor-w-resize" onPointerDown={(e) => startResize(e, 'w')} />
+          <div className="absolute top-3 bottom-3 right-0 w-1 z-20 cursor-e-resize" onPointerDown={(e) => startResize(e, 'e')} />
+
+          {/* Title bar — drag handle */}
+          <div
+            className="shrink-0 flex items-center justify-between px-3 py-1.5 bg-vsc-bg-secondary/90 backdrop-blur-sm border-b border-vsc-border cursor-grab active:cursor-grabbing select-none"
+            onPointerDown={startDrag}
+          >
+            <div className="flex items-center gap-2">
+              <span className={`inline-block w-2 h-2 rounded-full ${statusDotClass}`} />
+              <span className="text-sm text-vsc-text-primary font-medium truncate max-w-48">
+                {session.containerName || session.containerId.slice(0, 12)}
+              </span>
+              <span className="text-xs text-vsc-text-secondary">{statusLabel}</span>
+            </div>
+
+            <div className="flex items-center gap-0.5" onPointerDown={(e) => e.stopPropagation()}>
+              <button type="button" onClick={handleAttach}
+                className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
+                title="Expand fullscreen">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" />
+                </svg>
+              </button>
+              <button type="button" onClick={handleOpenInNewTab}
+                className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
+                title="Open in new tab">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
+              </button>
+              <button type="button" onClick={handleMinimize}
+                className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
+                title="Minimize">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="18" x2="19" y2="18" />
+                </svg>
+              </button>
+              <button type="button" onClick={handleClose}
+                className="flex items-center px-2 py-1 text-xs text-vsc-text-secondary hover:text-vsc-error hover:bg-vsc-hover rounded transition-colors"
+                title="Close">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── Fullscreen chrome ───────────────────────────────────────────────── */}
       {session.isExpanded && (
         <>
-          {/* Invisible hover zone at top */}
           {!toolbarVisible && (
             <div
               className="absolute top-0 left-0 right-0 z-20 h-[18px]"
@@ -306,7 +309,6 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
             />
           )}
 
-          {/* Auto-hide toolbar */}
           <div
             className="shrink-0 z-10 overflow-hidden"
             style={{ maxHeight: toolbarVisible ? '60px' : '0' }}
@@ -325,7 +327,6 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
               </div>
 
               <div className="flex items-center gap-1">
-                {/* Detach */}
                 <button type="button" onClick={handleDetach}
                   className="flex items-center gap-1.5 px-2.5 py-1 text-sm text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
                   title="Pop out as floating window">
@@ -334,7 +335,6 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
                     <path d="M9 3v18M3 9h6" />
                   </svg>
                 </button>
-                {/* Open in new tab */}
                 <button type="button" onClick={handleOpenInNewTab}
                   className="flex items-center gap-1.5 px-2.5 py-1 text-sm text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
                   title="Open in new tab">
@@ -343,7 +343,6 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
                     <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
                   </svg>
                 </button>
-                {/* Minimize */}
                 <button type="button" onClick={handleMinimize}
                   className="flex items-center gap-1.5 px-2.5 py-1 text-sm text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
                   title="Minimize">
@@ -351,7 +350,6 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
                     <line x1="5" y1="18" x2="19" y2="18" />
                   </svg>
                 </button>
-                {/* Close */}
                 <button type="button" onClick={handleClose}
                   className="flex items-center gap-1.5 px-2.5 py-1 text-sm text-vsc-text-secondary hover:text-vsc-error hover:bg-vsc-hover rounded transition-colors"
                   title="Close terminal">
@@ -365,11 +363,20 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
         </>
       )}
 
-      {/* Single persistent iframe — never unmounted while session exists */}
+      {/* ── Single persistent iframe — never unmounted while session exists ── */}
       <iframe
         ref={iframeRef}
-        src={`/terminal/${session.containerId}?worker=${session.workerId}`}
-        className={session.isExpanded ? 'flex-1 w-full border-0' : ''}
+        src={`/terminal/${session.containerId}?worker=${session.workerId}&detached=true`}
+        className={isHidden ? '' : 'flex-1 w-full border-0'}
+        style={{
+          pointerEvents: isInteracting ? 'none' : 'auto',
+          background: 'transparent',
+          ...(session.isDetached ? {
+            opacity: session.status === 'connected' ? 1 : 0,
+            transition: 'opacity 150ms',
+          } : {}),
+        }}
+        allowTransparency={true}
         title={`Terminal: ${session.containerName}`}
       />
     </div>

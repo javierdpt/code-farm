@@ -111,6 +111,16 @@ export function TerminalFullscreen({
     return () => window.removeEventListener('message', handler);
   }, [isEmbedded]);
 
+  // When embedded: notify parent on pointerdown so it can bring us to front
+  useEffect(() => {
+    if (!isEmbedded) return;
+    const handler = () => {
+      window.parent.postMessage({ type: 'terminal-focus-request', containerId }, '*');
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [isEmbedded, containerId]);
+
   const [toolbarVisible, setToolbarVisible] = useState(true);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
