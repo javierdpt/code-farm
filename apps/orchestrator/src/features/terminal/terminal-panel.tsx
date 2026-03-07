@@ -9,6 +9,7 @@ interface TerminalPanelProps {
   className?: string;
   transparent?: boolean;
   onFullscreen?: () => void;
+  onDetach?: () => void;
 }
 
 export function TerminalPanel({
@@ -17,6 +18,7 @@ export function TerminalPanel({
   className,
   transparent,
   onFullscreen,
+  onDetach,
 }: TerminalPanelProps) {
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect, focus } = useTerminal(terminalRef, {
@@ -68,7 +70,7 @@ export function TerminalPanel({
               type="button"
               onClick={onFullscreen}
               className="px-2 py-0.5 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
-              title="Fullscreen"
+              title="Terminal Fullscreen"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -85,6 +87,29 @@ export function TerminalPanel({
                 <polyline points="9 21 3 21 3 15" />
                 <line x1="21" y1="3" x2="14" y2="10" />
                 <line x1="3" y1="21" x2="10" y2="14" />
+              </svg>
+            </button>
+          )}
+          {onDetach && (
+            <button
+              type="button"
+              onClick={onDetach}
+              className="px-2 py-0.5 text-xs text-vsc-text-secondary hover:text-vsc-text-primary hover:bg-vsc-hover rounded transition-colors"
+              title="Terminal Detached"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 3v18M3 9h6" />
               </svg>
             </button>
           )}

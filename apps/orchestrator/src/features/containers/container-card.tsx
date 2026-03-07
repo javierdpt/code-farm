@@ -21,7 +21,7 @@ const statusConfig: Record<string, { label: string; dotClass: string; textClass:
 
 export function ContainerCard({ container }: ContainerCardProps) {
   const router = useRouter();
-  const { openTerminal } = useTerminalManager();
+  const { openTerminal, openTerminalDetached } = useTerminalManager();
   const status = statusConfig[container.status] ?? statusConfig.stopped;
 
   return (
@@ -114,26 +114,47 @@ export function ContainerCard({ container }: ContainerCardProps) {
 
       {/* Open in Terminal button */}
       {container.status === 'running' && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            openTerminal({
-              containerId: container.id,
-              workerId: container.workerId,
-              containerName: container.name,
-              workerName: container.workerName,
-            });
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded border border-vsc-accent-blue/40 bg-vsc-accent-blue/10 py-2 text-xs font-medium text-vsc-accent-blue transition-colors hover:bg-vsc-accent-blue/20"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="1" y="2.5" width="14" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M4 6.5L6.5 9L4 11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M8 11.5H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
-          </svg>
-          Open in Terminal
-        </button>
+        <div className="flex w-full">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openTerminal({
+                containerId: container.id,
+                workerId: container.workerId,
+                containerName: container.name,
+                workerName: container.workerName,
+              });
+            }}
+            className="flex flex-1 items-center justify-center gap-2 rounded-l border border-vsc-accent-blue/40 bg-vsc-accent-blue/10 py-2 text-xs font-medium text-vsc-accent-blue transition-colors hover:bg-vsc-accent-blue/20"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="1" y="2.5" width="14" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M4 6.5L6.5 9L4 11.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 11.5H12" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            Open in Terminal
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openTerminalDetached({
+                containerId: container.id,
+                workerId: container.workerId,
+                containerName: container.name,
+                workerName: container.workerName,
+              });
+            }}
+            className="flex items-center justify-center rounded-r border border-l-0 border-vsc-accent-blue/40 bg-vsc-accent-blue/10 px-2 py-2 text-xs text-vsc-accent-blue transition-colors hover:bg-vsc-accent-blue/20"
+            title="Open terminal detached"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M9 3v18M3 9h6" />
+            </svg>
+          </button>
+        </div>
       )}
     </div>
   );

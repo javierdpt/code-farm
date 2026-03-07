@@ -19,6 +19,7 @@ export interface TerminalSession {
   isExpanded: boolean;
   isDetached: boolean;
   detachedPos: DetachedPosition;
+  restoreAsDetached: boolean;
 }
 
 interface OpenTerminalInfo {
@@ -31,6 +32,7 @@ interface OpenTerminalInfo {
 interface TerminalManagerContextValue {
   terminals: TerminalSession[];
   openTerminal: (info: OpenTerminalInfo) => void;
+  openTerminalDetached: (info: OpenTerminalInfo) => void;
   closeTerminal: (containerId: string) => void;
   expandTerminal: (containerId: string) => void;
   minimizeTerminal: (containerId: string) => void;
@@ -79,6 +81,35 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
           isExpanded: true,
           isDetached: false,
           detachedPos: defaultDetachedPos(prev.length),
+          restoreAsDetached: false,
+        },
+      ];
+    });
+  }, []);
+
+  const openTerminalDetached = useCallback((info: OpenTerminalInfo) => {
+    setTerminals((prev) => {
+      const existing = prev.find((t) => t.containerId === info.containerId);
+      if (existing) {
+        return prev.map((t) =>
+          t.containerId === info.containerId
+            ? { ...t, isDetached: true, isExpanded: false, restoreAsDetached: false }
+            : t
+        );
+      }
+      return [
+        ...prev,
+        {
+          id: crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36),
+          containerId: info.containerId,
+          workerId: info.workerId,
+          containerName: info.containerName,
+          workerName: info.workerName,
+          status: 'connecting',
+          isExpanded: false,
+          isDetached: true,
+          detachedPos: defaultDetachedPos(prev.length),
+          restoreAsDetached: false,
         },
       ];
     });
@@ -89,18 +120,32 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const expandTerminal = useCallback((containerId: string) => {
-    setTerminals((prev) =>
-      prev.map((t) => ({
+    setTerminals((prev) => {
+      const target = prev.find((t) => t.containerId === containerId);
+      if (target?.restoreAsDetached) {
+        // Restore to detached floating — don't collapse other terminals
+        return prev.map((t) =>
+          t.containerId === containerId
+            ? { ...t, isDetached: true, isExpanded: false, restoreAsDetached: false }
+            : t
+        );
+      }
+      // Restore to fullscreen — collapse all others
+      return prev.map((t) => ({
         ...t,
         isExpanded: t.containerId === containerId,
-      }))
-    );
+        isDetached: t.containerId === containerId ? false : t.isDetached,
+        restoreAsDetached: t.containerId === containerId ? false : t.restoreAsDetached,
+      }));
+    });
   }, []);
 
   const minimizeTerminal = useCallback((containerId: string) => {
     setTerminals((prev) =>
       prev.map((t) =>
-        t.containerId === containerId ? { ...t, isExpanded: false, isDetached: false } : t
+        t.containerId === containerId
+          ? { ...t, isExpanded: false, isDetached: false, restoreAsDetached: t.isDetached }
+          : t
       )
     );
   }, []);
@@ -108,7 +153,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
   const detachTerminal = useCallback((containerId: string) => {
     setTerminals((prev) =>
       prev.map((t) =>
-        t.containerId === containerId ? { ...t, isExpanded: false, isDetached: true } : t
+        t.containerId === containerId ? { ...t, isExpanded: false, isDetached: true, restoreAsDetached: false } : t
       )
     );
   }, []);
@@ -117,7 +162,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
     setTerminals((prev) =>
       prev.map((t) =>
         t.containerId === containerId
-          ? { ...t, isDetached: false, isExpanded: true }
+          ? { ...t, isDetached: false, isExpanded: true, restoreAsDetached: false }
           : { ...t, isExpanded: false }
       )
     );
@@ -162,7 +207,7 @@ export function TerminalManagerProvider({ children }: { children: ReactNode }) {
 
   return (
     <TerminalManagerContext.Provider
-      value={{ terminals, openTerminal, closeTerminal, expandTerminal, minimizeTerminal, detachTerminal, attachTerminal, updateDetachedPos }}
+      value={{ terminals, openTerminal, openTerminalDetached, closeTerminal, expandTerminal, minimizeTerminal, detachTerminal, attachTerminal, updateDetachedPos }}
     >
       {children}
     </TerminalManagerContext.Provider>

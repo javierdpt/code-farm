@@ -20,7 +20,7 @@ const statusConfig: Record<string, { label: string; dotClass: string; textClass:
 export default function ContainerDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { openTerminal } = useTerminalManager();
+  const { openTerminal, openTerminalDetached } = useTerminalManager();
   const containerId = params.id;
 
   const [container, setContainer] = useState<ContainerInfo | null>(null);
@@ -230,13 +230,31 @@ export default function ContainerDetailPage() {
                       workerName: container.workerName,
                     })}
                     className="rounded bg-vsc-accent-blue px-3 py-1 text-xs text-white transition-colors hover:bg-vsc-accent-blue/80"
+                    title="Terminal Fullscreen"
                   >
-                    <span className="hidden md:inline">Fullscreen</span>
+                    <span className="hidden md:inline">Terminal Fullscreen</span>
                     <svg className="md:hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <polyline points="15 3 21 3 21 9" />
                       <polyline points="9 21 3 21 3 15" />
                       <line x1="21" y1="3" x2="14" y2="10" />
                       <line x1="3" y1="21" x2="10" y2="14" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openTerminalDetached({
+                      containerId,
+                      workerId: container.workerId,
+                      containerName: container.name,
+                      workerName: container.workerName,
+                    })}
+                    className="rounded border border-vsc-accent-blue/50 px-3 py-1 text-xs text-vsc-accent-blue transition-colors hover:bg-vsc-accent-blue/10"
+                    title="Terminal Detached"
+                  >
+                    <span className="hidden md:inline">Terminal Detached</span>
+                    <svg className="md:hidden" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <path d="M9 3v18M3 9h6" />
                     </svg>
                   </button>
                   <button
@@ -442,6 +460,12 @@ export default function ContainerDetailPage() {
             className="min-h-80 flex-1"
             transparent
             onFullscreen={() => openTerminal({
+              containerId,
+              workerId: container.workerId,
+              containerName: container.name,
+              workerName: container.workerName,
+            })}
+            onDetach={() => openTerminalDetached({
               containerId,
               workerId: container.workerId,
               containerName: container.name,

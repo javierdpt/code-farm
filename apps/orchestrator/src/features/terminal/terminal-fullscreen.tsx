@@ -1,17 +1,25 @@
 'use client';
 
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useState, useCallback } from 'react';
 import { useTerminal, MAX_RECONNECT_ATTEMPTS } from '@/features/terminal/use-terminal';
 import { useVisualViewport } from '@/hooks/use-visual-viewport';
 import { TerminalSessionDialog } from '@/common/terminal-session-dialog';
 import { StatusFooter } from '@/layout/status-footer';
 
 function useIsEmbedded() {
-  const [state, setState] = useState({ embedded: false, ready: false });
-  useEffect(() => {
-    setState({ embedded: window.self !== window.top, ready: true });
-  }, []);
+  const [state] = useState(() => {
+    if (typeof window === 'undefined') return { embedded: false, ready: false };
+    return { embedded: window.self !== window.top, ready: true };
+  });
   return state;
+}
+
+function useIsDetachedMode() {
+  const [detached] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('detached') === 'true';
+  });
+  return detached;
 }
 
 interface TerminalFullscreenProps {
@@ -36,6 +44,22 @@ export function TerminalFullscreen({
   containerCount = 0,
 }: TerminalFullscreenProps) {
   const { embedded: isEmbedded, ready: isReady } = useIsEmbedded();
+  const isDetachedMode = useIsDetachedMode();
+
+  useLayoutEffect(() => {
+    if (!isDetachedMode) return;
+    document.documentElement.classList.add('detached-terminal');
+    document.documentElement.style.setProperty('background', 'transparent', 'important');
+    document.body.style.setProperty('background', 'transparent', 'important');
+    document.body.style.setProperty('background-color', 'transparent', 'important');
+    return () => {
+      document.documentElement.classList.remove('detached-terminal');
+      document.documentElement.style.removeProperty('background');
+      document.body.style.removeProperty('background');
+      document.body.style.removeProperty('background-color');
+    };
+  }, [isDetachedMode]);
+
   const viewport = useVisualViewport();
   const terminalRef = useRef<HTMLDivElement | null>(null);
   const { isConnected, wasConnected, isConnecting, reconnectAttempt, disconnect, reconnect, focus } = useTerminal(terminalRef, {
@@ -164,7 +188,7 @@ export function TerminalFullscreen({
     <div
       className={`fixed left-0 right-0 flex flex-col ${isEmbedded ? '' : 'z-50'}`}
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.88)',
+        backgroundColor: isDetachedMode ? 'transparent' : 'rgba(0, 0, 0, 0.88)',
         top: viewport ? `${viewport.offsetTop}px` : 0,
         height: viewport ? `${viewport.height}px` : '100dvh',
       }}
@@ -233,23 +257,25 @@ export function TerminalFullscreen({
       )}
 
       {/* Terminal — always in same tree position */}
-      <div className="terminal-fullscreen relative z-0 flex-1 w-full" style={{ backgroundColor: '#000' }}>
+      <div className="terminal-fullscreen relative z-0 flex-1 w-full" style={{ backgroundColor: isDetachedMode ? 'transparent' : '#000' }}>
         <div
           ref={terminalRef}
           className="absolute inset-0"
           onClick={focus}
         />
-        {/* Logo watermark — sits above terminal, ignores pointer events */}
-        <div
-          className="absolute inset-0 z-[1] pointer-events-none"
-          style={{
-            backgroundImage: 'url(/images/logo.png)',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: '50%',
-            opacity: 0.06,
-          }}
-        />
+        {/* Logo watermark — hidden in detached mode */}
+        {!isDetachedMode && (
+          <div
+            className="terminal-watermark absolute inset-0 z-[1] pointer-events-none"
+            style={{
+              backgroundImage: 'url(/images/logo.png)',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundSize: '50%',
+              opacity: 0.06,
+            }}
+          />
+        )}
 
         {isReconnecting && (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/80">

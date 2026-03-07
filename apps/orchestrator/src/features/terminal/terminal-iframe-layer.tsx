@@ -127,7 +127,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
     applyPos({ x, y, w, h });
   }, [applyPos]);
 
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  const onPointerUp = useCallback(() => {
     const info = interactRef.current;
     if (!info) return;
     interactRef.current = null;
@@ -203,7 +203,7 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
       <div
         ref={floatRef}
         className="fixed z-50 flex flex-col rounded-lg overflow-hidden shadow-2xl border border-vsc-border"
-        style={{ left: x, top: y, width: w, height: h, backgroundColor: 'rgba(0,0,0,0.95)' }}
+        style={{ left: x, top: y, width: w, height: h, backgroundColor: 'rgba(0, 0, 0, 0.5)', backdropFilter: 'blur(3px)' }}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       >
@@ -270,12 +270,17 @@ function TerminalOverlay({ session }: { session: TerminalSession }) {
           </div>
         </div>
 
-        {/* iframe — pointer-events disabled during drag/resize */}
+        {/* iframe — hidden until connected to avoid dark background flash */}
         <iframe
           ref={iframeRef}
-          src={`/terminal/${session.containerId}?worker=${session.workerId}`}
-          className="flex-1 w-full border-0"
-          style={{ pointerEvents: isInteracting ? 'none' : 'auto' }}
+          src={`/terminal/${session.containerId}?worker=${session.workerId}&detached=true`}
+          className="flex-1 w-full border-0 transition-opacity duration-150"
+          style={{
+            pointerEvents: isInteracting ? 'none' : 'auto',
+            background: 'transparent',
+            opacity: session.status === 'connected' ? 1 : 0,
+          }}
+          allowTransparency={true}
           title={`Terminal: ${session.containerName}`}
         />
       </div>

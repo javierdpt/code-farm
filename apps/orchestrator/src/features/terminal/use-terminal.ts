@@ -126,7 +126,7 @@ export function useTerminal(
     if (!mountedRef.current || gen !== connectGenRef.current) return;
 
     const theme = transparent
-      ? { ...THEME, background: 'rgba(0, 0, 0, 0.70)' }
+      ? { ...THEME, background: 'transparent' }
       : THEME;
 
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
@@ -146,6 +146,13 @@ export function useTerminal(
     fitAddonRef.current = fitAddon;
 
     terminal.open(el);
+
+    // In detached mode, force the xterm-viewport background transparent
+    // xterm.js sets it as an inline style which may resist CSS overrides
+    if (transparent) {
+      const viewport = el.querySelector('.xterm-viewport') as HTMLElement | null;
+      if (viewport) viewport.style.backgroundColor = 'transparent';
+    }
 
     // Ensure the terminal captures keyboard input immediately after mount.
     // Without this, some browsers (especially macOS) drop certain keys (e.g. digits)
